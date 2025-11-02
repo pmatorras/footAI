@@ -20,7 +20,7 @@ python -c "from plot_elo import plot_elo_rankings; plot_elo_rankings('data/proce
 1. **Download** – Fetch match data from [football-data.co.uk](https://football-data.co.uk)
 2. **Calculate** – Compute Elo ratings for all teams per match
 3. **Plot** – Visualize team progression as interactive charts
-4. **Dash** – Interactive dashboard (coming soon)
+4. **Dash** – Interactive dashboard
 
 ## Files
 
@@ -31,6 +31,7 @@ python -c "from plot_elo import plot_elo_rankings; plot_elo_rankings('data/proce
 | `calculate_elo.py` | Compute Elo ratings |
 | `plot_elo.py` | Generate interactive charts |
 | `common.py` | Shared config & helpers |
+| `app.py` |  Interactive dashboard |
 
 ## Requirements
 

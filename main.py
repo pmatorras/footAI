@@ -39,7 +39,8 @@ def main():
     season_str = season_to_season_str(args.season, args.division, args.country)
     data_path = get_data_loc(season_str, args.division, args.country, RAW_DIR)
     elo_path = get_data_loc(season_str, args.division, args.country, PROCESSED_DIR, elo=True)
-
+    print(season_str, args.division, args.country)
+    exit()
     if args.cmd == "download":
         success, message = download_football_data(season_str=season_str, division=args.division, country=args.country, filepath=data_path)
         print(message)
