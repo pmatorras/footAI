@@ -1,5 +1,5 @@
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
-/football_data/
+/data/
 *_with_elo.csv
