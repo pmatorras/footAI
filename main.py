@@ -2,7 +2,7 @@ import pandas as pd
 import argparse
 from calculate_elo import calculate_elo_ratings
 from download_data import download_football_data
-from common import get_data_loc, season_to_season_str
+from common import get_data_loc, season_to_season_str, DATA_DIR, RAW_DIR, PROCESSED_DIR
 from plot_elo import plot_elo_rankings
 
 def main():
@@ -28,39 +28,39 @@ def main():
 
     for sp in (p_down, p_elo, p_plot):
         sp.add_argument( '--season', type=int, help='Season year (e.g., 2024 for 2024-25 season)', default=2024)
-        sp.add_argument( '--division', type=int, default=1, choices=[1, 2], help='League division (default: 1)')
+        sp.add_argument( '--division', '-div', type=int, default=1, choices=[1, 2], help='League division (default: 1)')
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)')
-        sp.add_argument( '--data-dir', type=str, default='football_data', help='Directory to save CSV files (default: football_data)')
-        
+        sp.add_argument( '--data-dir', type=str, default=DATA_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
+
     args = parser.parse_args()
     print("Running the code with args:", args)
-    elo_csv = 'laliga_with_elo.csv'
-    if args.cmd == "download":
-        filepath, success, message = download_football_data(season=args.season, division=args.division, country=args.country, data_dir=args.data_dir)
-        print(message)
-        if success:
-            return 0
-        else:
-            return 1
-    if args.cmd =="elo":
-        # Load your downloaded CSV
-        season_str = season_to_season_str(args.season, args.division, args.country)
-        print(season_str)
-        data_path = get_data_loc(season_str, args.division, args.country, args.data_dir)
-        df = pd.read_csv(data_path)
 
-        # Calculate ELO
+    season_str = season_to_season_str(args.season, args.division, args.country)
+    data_path = get_data_loc(season_str, args.division, args.country, RAW_DIR)
+    elo_path = get_data_loc(season_str, args.division, args.country, PROCESSED_DIR, elo=True)
+
+    if args.cmd == "download":
+        success, message = download_football_data(season_str=season_str, division=args.division, country=args.country, filepath=data_path)
+        print(message)
+    if args.cmd =="elo":
+        # Load Input CSV and calculate elo
+        df = pd.read_csv(data_path)
         team_history, df_with_elos = calculate_elo_ratings(df, initial_elo=1500, k_factor=32)
 
-        # Save for training
-        df_with_elos.to_csv(elo_csv, index=False)
+        # Save for training/plotting
+        df_with_elos.to_csv(elo_path, index=False)
 
-        # View final standings by ELO
-        final_elos = {team: history[-1][1] for team, history in team_history.items()}
-        for team, elo in sorted(final_elos.items(), key=lambda x: x[1], reverse=True):
-            print(f"{team}: {elo:.1f}")
+        if args.verbose:
+            # View final standings by ELO
+            final_elos = {team: history[-1][1] for team, history in team_history.items()}
+            print("Final elos:")
+            for team, elo in sorted(final_elos.items(), key=lambda x: x[1], reverse=True):
+                print(f"{team}: {elo:.1f}")
     if args.cmd =="plot":
-        fig = plot_elo_rankings(elo_csv, division='SP1')
+        print(args.country, args.division)
+        div_plot = str(args.country)+str(args.division)
+        fig = plot_elo_rankings(elo_path, division=div_plot)
         fig.show()
 
 if __name__ == "__main__":

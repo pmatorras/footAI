@@ -3,7 +3,13 @@ from collections import defaultdict
 
 
 def expected_score(elo_a, elo_b):
-    """Expected probability that team A beats team B"""
+    """
+    Expected probability that team A beats team B using official Elo formula.
+    
+    Reference: https://en.wikipedia.org/wiki/Elo_rating_system#Mathematical_details
+    
+    Formula: E_A = 1 / (1 + 10^((R_B - R_A) / 400))
+    """
     return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
 
 def new_elo(old_elo, expected, actual, k_factor=32):
@@ -30,7 +36,9 @@ def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
     team_history = defaultdict(list)
     
     # Sort chronologically
-    matches_df = matches_df.sort_values('Date').reset_index(drop=True)
+    # Convert Date to datetime (handle format properly)
+    matches_df = matches_df.copy()
+    matches_df['Date'] = pd.to_datetime(matches_df['Date'], format='%d/%m/%Y', errors='coerce')
     
     # Create output with ELO columns
     output_df = matches_df.copy()
@@ -80,5 +88,5 @@ def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
         # Store history
         team_history[home_team].append((match['Date'], new_home_elo))
         team_history[away_team].append((match['Date'], new_away_elo))
-    
+
     return dict(team_history), output_df
