@@ -24,7 +24,7 @@ COUNTRIES = {
             },
         },
     "IT" : {
-        "name" : "England",
+        "name" : "Italy",
         "divisions": {
             "I1" : "Serie A",
             "I2" : "Serie B"
