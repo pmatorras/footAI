@@ -2,8 +2,18 @@ import pandas as pd
 import argparse
 from calculate_elo import calculate_elo_ratings
 from download_data import download_football_data
-from common import get_data_loc, season_to_season_str, DATA_DIR, RAW_DIR, PROCESSED_DIR
+from common import get_data_loc, season_to_season_str, DATA_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
 from plot_elo import plot_elo_rankings
+
+class ValidateDivisionAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        country = namespace.country
+        print(COUNTRIES.keys())
+        if values not in COUNTRIES[country]["divisions"]:
+            valid = ', '.join(COUNTRIES[country]["divisions"].keys())
+            parser.error(f"Invalid division '{values}' for {country}. Choose from: {valid}")
+        setattr(namespace, self.dest, values)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -28,21 +38,21 @@ def main():
 
     for sp in (p_down, p_elo, p_plot):
         sp.add_argument( '--season', type=int, help='Season year (e.g., 2024 for 2024-25 season)', default=2024)
-        sp.add_argument( '--division', '-div', type=int, default=1, choices=[1, 2], help='League division (default: 1)')
-        sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)')
-        sp.add_argument( '--data-dir', type=str, default=DATA_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default="SP1", help='League division (default: SP1)')
+        sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
+        sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
 
     args = parser.parse_args()
     print("Running the code with args:", args)
 
     season_str = season_to_season_str(args.season, args.division, args.country)
-    data_path = get_data_loc(season_str, args.division, args.country, RAW_DIR)
-    elo_path = get_data_loc(season_str, args.division, args.country, PROCESSED_DIR, elo=True)
+    data_path = get_data_loc(season_str, args.division, args.country, args.raw_dir)
+    elo_path = get_data_loc(season_str, args.division, args.country, args.processed_dir, elo=True)
     print(season_str, args.division, args.country)
-    exit()
     if args.cmd == "download":
-        success, message = download_football_data(season_str=season_str, division=args.division, country=args.country, filepath=data_path)
+        success, message = download_football_data(season_str=season_str, division=args.division, filepath=data_path)
         print(message)
     if args.cmd =="elo":
         # Load Input CSV and calculate elo
@@ -60,8 +70,7 @@ def main():
                 print(f"{team}: {elo:.1f}")
     if args.cmd =="plot":
         print(args.country, args.division)
-        div_plot = str(args.country)+str(args.division)
-        fig = plot_elo_rankings(elo_path, division=div_plot)
+        fig = plot_elo_rankings(elo_path, division=args.division, custom_title=f"for {COUNTRIES[args.country]["divisions"][args.division]} ({COUNTRIES[args.country]["name"]})")
         fig.show()
 
 if __name__ == "__main__":
