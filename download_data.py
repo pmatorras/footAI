@@ -1,22 +1,20 @@
 import requests
-from common import DATA_DIR, COUNTRY, DIV
+from common import DATA_DIR
 
-def download_football_data(season_str, division=DIV, country=COUNTRY, filepath=DATA_DIR):
+def download_football_data(season_str, division, filepath=DATA_DIR):
     """
     Download football match data from football-data.co.uk
     
     Parameters:
     - season (int or str): Season year (e.g., 2024 for 2024-25 season)
-    - division (int): League division, 1 or 2 (default: 1)
-    - country (str): Country code (default: 'SP' for Spain/La Liga)
-    - data_dir (str): Directory to save CSV files (default: 'football_data')
+    - division (int): League division
+    - filepath (str): Directory to save CSV files (default: 'football_data')
     
     Returns:
     - tuple: (filepath, success_bool, message)
     """
     # Build the URL
-    division_code = f"{country.upper()}{division}"
-    url = f"https://www.football-data.co.uk/mmz4281/{season_str}/{division_code}.csv"
+    url = f"https://www.football-data.co.uk/mmz4281/{season_str}/{division}.csv"
     
     print(f"URL: {url}")
     print(f"Output: {filepath}")

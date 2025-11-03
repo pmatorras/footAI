@@ -1,8 +1,9 @@
 import plotly.graph_objects as go
 import pandas as pd
 from pathlib import Path
+from common import COUNTRIES
 
-def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, title=None):
+def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
     """
     Plot Elo rankings as line chart.
     
@@ -11,7 +12,7 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, title=None)
     csv_path : path to a csv file, with Columns: ['team', 'matchday', 'elo', 'division']
     division : str, optional
         Filter to specific division (e.g., 'SP1', 'SP2')
-    title : str, optional
+    custom_title : str, optional
         Custom title
         
     Raises:
@@ -19,8 +20,8 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, title=None)
     FileNotFoundError: If csv_path does not exist
     ValueError: If DataFrame is empty or required columns are missing
     """
-
     
+    title = f"Elo Rankings {custom_title}"
     df = pd.read_csv(csv_path)
 
     if not Path(csv_path).exists(): raise FileNotFoundError(f"CSV file not found: {csv_path}")
@@ -29,11 +30,9 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, title=None)
 
     if division:
         df = df[df['Div'] == division]
-        default_title = f"Elo Rankings - {division}"
         if df.empty: raise ValueError(f"No data found for division: {division}")
     else:
         df = df
-        default_title = "Elo Rankings"
     
     # Reshape: create separate rows for home and away teams
     home_rows = df[['Date', 'HomeTeam', 'HomeElo']].rename(
@@ -62,7 +61,7 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, title=None)
         ))
     
     fig.update_layout(
-        title=title or default_title,
+        title=title,
         xaxis_title="Matchday",
         yaxis_title="Elo Rating",
         hovermode='x unified',
