@@ -43,10 +43,10 @@ pip install pandas plotly requests
 
 ```
 data/
-├── raw/                              \# Downloaded, unmodified
-│   └── SP1_2024-25.csv
-└── processed/                        \# With Elo calculated
-└── laliga_with_elo_SP1_2024-25.csv
+├── raw/                                    # Downloaded, unmodified
+│   └── {country_division}_{seasom}.csv     # e.g SP1_2024-25.csv
+└── processed/                              # With Elo calculated
+│   └── {country_division}_{seasom}_elo.csv # e.g SP1_2024-25_elo.csv
 ```
 
 ## Elo Rating
