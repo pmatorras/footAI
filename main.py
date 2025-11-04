@@ -1,18 +1,81 @@
 import pandas as pd
 import argparse
-from calculate_elo import calculate_elo_ratings
+from pathlib import Path
+from calculate_elo import calculate_elo_season, calculate_elo_multiseason
 from download_data import download_football_data
-from common import get_data_loc, season_to_season_str, DATA_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
+from common import get_season_paths, year_to_season_code, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
 from plot_elo import plot_elo_rankings
 
 class ValidateDivisionAction(argparse.Action):
+    """Validate that provided divisions exist for the selected country."""
     def __call__(self, parser, namespace, values, option_string=None):
         country = namespace.country
         print(COUNTRIES.keys())
-        if values not in COUNTRIES[country]["divisions"]:
-            valid = ', '.join(COUNTRIES[country]["divisions"].keys())
-            parser.error(f"Invalid division '{values}' for {country}. Choose from: {valid}")
-        setattr(namespace, self.dest, values)
+        divisions = [d.strip() for d in values.split(',')]
+        
+        for div in divisions:
+            if div not in COUNTRIES[country]['divisions']:
+                valid = ', '.join(COUNTRIES[country]['divisions'].keys())
+                parser.error(f"Invalid division '{div}' for {country}. Choose from: {valid}")
+        
+        setattr(namespace, self.dest, divisions)
+
+def validate_decay_factor(value):
+    """
+    Validate that decay factor is between 0 and 1 (inclusive).
+    
+    Args:
+        value: String value from command line
+        
+    Returns:
+        float: Validated decay factor
+        
+    Raises:
+        argparse.ArgumentTypeError: If value is not in valid range
+    """
+    try:
+        fvalue = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Decay factor must be a number, got '{value}'")
+    
+    if fvalue < 0 or fvalue > 1:
+        raise argparse.ArgumentTypeError(f"Decay factor must be between 0 and 1 (inclusive), got {fvalue}")
+    
+    return fvalue
+
+
+def parse_start_years(years_str):
+    """
+    Parse season start years and convert to season codes.
+    
+    Takes comma-separated years and converts each to a compact season format.
+    Supports both 4-digit (2024) and 2-digit (24) formats.
+    
+    Args:
+        seasons_str: Comma-separated years (e.g., "2024,2025" or "23,24")
+    
+    Returns:
+        List of season codes (e.g., ['2425', '2526'])
+    
+    Examples:
+        >>> parse_season_codes("2024,2025")
+        ['2425', '2526']
+        >>> parse_season_codes("23,24")
+        ['2324', '2425']
+    """
+    years = []
+    for year_str in years_str.split(','):
+        year_str = year_str.strip()
+        year = int(year_str)
+        
+        # If 2-digit year, expand to 20xx
+        if year < 100:
+            year = 2000 + year
+        
+        years.append(year_to_season_code(year))
+    
+    return years
+
 
 
 def main():
@@ -28,50 +91,67 @@ def main():
             """
         )
 
-    parser = argparse.ArgumentParser(prog="financial_ml", description="S&P 500 data pipeline: fetch, fundamentals, train")
+    parser = argparse.ArgumentParser(prog="footAI", description="FootAI pipeline")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_down = sub.add_parser("download", help="Download new data")
-    p_elo = sub.add_parser("elo", help="Calculate ELO rankings")
+    p_elo = sub.add_parser('elo', help="Calculate ELO rankings")
+
     p_plot = sub.add_parser("plot", help="Plot ELO rankings")
 
 
     for sp in (p_down, p_elo, p_plot):
-        sp.add_argument( '--season', type=int, help='Season year (e.g., 2024 for 2024-25 season)', default=2024)
-        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default="SP1", help='League division (default: SP1)')
+        sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
+        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=["SP1"], help='League division (default: SP1)')
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
         sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument("-m", "--multiseason", action="store_true", help="Calculate over multiple seasons")
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
+        sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
 
     args = parser.parse_args()
     print("Running the code with args:", args)
+    divisions = args.division
+    seasons = parse_start_years(args.season_start)
 
-    season_str = season_to_season_str(args.season, args.division, args.country)
-    data_path = get_data_loc(season_str, args.division, args.country, args.raw_dir)
-    elo_path = get_data_loc(season_str, args.division, args.country, args.processed_dir, elo=True)
-    print(season_str, args.division, args.country)
+    #Create dictionary with directories and ensure they exist
+    dirs = {
+        'raw' : args.raw_dir,
+        'elo' : args.processed_dir,
+        'fig' : FIG_DIR
+    }
+    for dir in dirs.keys():
+        if args.verbose: print("creating", dirs[dir])
+        Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
+
+
     if args.cmd == "download":
-        success, message = download_football_data(season_str=season_str, division=args.division, filepath=data_path)
-        print(message)
-    if args.cmd =="elo":
-        # Load Input CSV and calculate elo
-        df = pd.read_csv(data_path)
-        team_history, df_with_elos = calculate_elo_ratings(df, initial_elo=1500, k_factor=32)
+        for season in seasons:
+            for division in divisions:
+                paths = get_season_paths(season, division, dirs, args)
+                download_football_data(season, division, paths['raw'])
+    elif args.cmd == 'elo':
+        if args.multiseason:
+            print("calculating multi season")
+            calculate_elo_multiseason(seasons, divisions, args.country, dirs, decay_factor=args.decay_factor, initial_elo=1500, k_factor=32, args=args)
+        else:
+            for season in seasons:
+                for division in divisions:
+                    paths = get_season_paths(season, division, dirs, args)
+                    df = pd.read_csv(paths['raw'])
+                    df_with_elos = calculate_elo_season(df)
+                    df_with_elos.to_csv(paths['elo'], index=False)
+                    print(f"{season} / {division} saved to {paths['elo']}")
 
-        # Save for training/plotting
-        df_with_elos.to_csv(elo_path, index=False)
+    elif args.cmd == "plot":
+        for season in seasons:
+            for division in divisions:
+                paths = get_season_paths(season, division, dirs, args)
+                fig = plot_elo_rankings(paths['elo'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]})")
+                fig.write_html(paths['fig'])
+                print(f"{season} / {division} saved to {paths['fig']}")
 
-        if args.verbose:
-            # View final standings by ELO
-            final_elos = {team: history[-1][1] for team, history in team_history.items()}
-            print("Final elos:")
-            for team, elo in sorted(final_elos.items(), key=lambda x: x[1], reverse=True):
-                print(f"{team}: {elo:.1f}")
-    if args.cmd =="plot":
-        print(args.country, args.division)
-        fig = plot_elo_rankings(elo_path, division=args.division, custom_title=f"for {COUNTRIES[args.country]["divisions"][args.division]} ({COUNTRIES[args.country]["name"]})")
-        fig.show()
-
+    print('Code finished running')
 if __name__ == "__main__":
     main()

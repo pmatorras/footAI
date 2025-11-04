@@ -4,7 +4,7 @@ ROOT_DIR = Path(__file__).resolve().parents[0] #to be changed if this goes to /s
 DATA_DIR = ROOT_DIR / 'data/'
 RAW_DIR = DATA_DIR / 'raw/'
 PROCESSED_DIR = DATA_DIR /'processed/'
-
+FIG_DIR = ROOT_DIR / 'figures/'
 COUNTRIES = {
     "SP" : {
         "name" : "Spain",
@@ -45,31 +45,44 @@ COUNTRIES = {
         }
     }
 }
-def season_to_season_str(season, country, division):
-    # Convert season format (2024 -> 2425 if needed)
+
+def year_to_season_code(season):
+    """Convert starting year to compact season format (e.g., 2024 -> '2425' for 2024-25)"""
     if isinstance(season, int) and season > 1000:
         next_year = (season % 100) + 1
-        season_str = f"{season %100}{next_year:02d}"
+        season = f"{season %100}{next_year:02d}"
     else:
-        season_str = str(season)
-    print(season, season_str)
+        season = str(season)
+    return season
 
-    return season_str
-def get_data_loc(season_str, division, country, data_dir = DATA_DIR, elo=False):
-    # Create data directory if it doesn't exist
-    Path(data_dir).mkdir(parents=True, exist_ok=True)
-    elo_suffix = '_elo' if elo else ''
+def get_season_paths(season, division, dirs, args):
+    """
+    Get file paths for a season/division combination.
+    
+    Returns a dict with keys: 'season', 'raw', 'elo', 'fig'
+    """
+    multi = '_multi' if args.multiseason else ''
+    raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
+    elo_path = get_data_loc(season, division, args.country, dirs['elo'], is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
+    fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, multi=multi, verbose=args.verbose)
+    
+    return {
+        'raw': raw_path,
+        'elo': elo_path,
+        'fig': fig_path
+    }
 
+def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, multi='', verbose=False):
+    """
+    Generate file path for data storage.
+    
+    Returns path as: {country}_{season}_{division}[_elo][_multi][.csv|.html]
+    """
+    elo_suffix = '_elo' if is_elo else ''
+    file_type = '.html' if is_fig else '.csv'
     # Create filename
-    filename = f"{country.upper()}_{season_str}_{division}{elo_suffix}.csv"
-    filepath =  os.path.join(data_dir, filename)
-    print(f"Chosen file{elo_suffix}: {filepath}")
+    filename = f"{country.upper()}_{season}_{division}{elo_suffix}{multi}{file_type}"
+    filepath =  os.path.join(file_dir, filename)
+    if verbose: print(f"Chosen file: {filepath}")
     return filepath
 
-def get_elo_loc(season_str, division, country, data_dir = PROCESSED_DIR):
-    # Create elo directory if it doesn't exist
-    Path(data_dir).mkdir(parents=True, exist_ok=True)
-    
-    # Create filename
-    filename = f"{country.upper()}_{season_str}_D{division}.csv"
-    return os.path.join(data_dir, filename)

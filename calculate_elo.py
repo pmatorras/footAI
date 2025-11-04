@@ -17,7 +17,7 @@ def new_elo(old_elo, expected, actual, k_factor=32):
     return old_elo + k_factor * (actual - expected)
 
 
-def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
+def calculate_elo_season(matches_df, initial_elo=1500, k_factor=32, team_starting_elos=None):
     """
     Calculate ELO ratings for all teams based on match results.
     
@@ -33,6 +33,8 @@ def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
     
     # Initialize ELO ratings
     team_elos = defaultdict(lambda: initial_elo)
+    if team_starting_elos:
+        team_elos.update(team_starting_elos)
     team_history = defaultdict(list)
     
     # Sort chronologically
@@ -89,4 +91,37 @@ def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
         team_history[home_team].append((match['Date'], new_home_elo))
         team_history[away_team].append((match['Date'], new_away_elo))
 
-    return dict(team_history), output_df
+    return output_df
+
+def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.95, initial_elo=1500, k_factor=32, args=None):
+    """
+    Process Elo ratings across multiple seasons with continuity and decay.
+    
+    Carries forward team Elo between seasons with decay factor to reflect
+    that team strength degrades slightly during off-season.
+    """
+    from common import get_season_paths
+    
+    regression_point = initial_elo
+    team_elos_carry = {}
+    print("DECAY FACTOR:", decay_factor)
+    for season in seasons:
+        for division in divisions:
+            paths = get_season_paths(season, division, dirs, args)
+            
+            df = pd.read_csv(paths['raw'])
+            df_with_elos = calculate_elo_season(df, initial_elo=initial_elo,k_factor=k_factor, team_starting_elos=team_elos_carry)
+            df_with_elos.to_csv(paths['elo'], index=False)
+            print(f"{season} / {division}, saved to {paths['elo']}")
+            
+            # Extract and decay
+            final_elos = {
+                team: df_with_elos[df_with_elos['HomeTeam'] == team].iloc[-1]['HomeElo']
+                for team in df_with_elos['HomeTeam'].unique()
+            }
+            
+            team_elos_carry = {
+                team: regression_point + (elo - regression_point) * decay_factor
+                for team, elo in final_elos.items()
+            }
+
