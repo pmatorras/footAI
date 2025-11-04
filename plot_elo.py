@@ -5,7 +5,6 @@ from common import COUNTRIES
 from colors import get_team_colors_dict
 
 def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
-def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
     """
     Plot Elo rankings as line chart.
     
@@ -15,7 +14,6 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     division : str, optional
         Filter to specific division (e.g., 'SP1', 'SP2')
     custom_title : str, optional
-    custom_title : str, optional
         Custom title
         
     Raises:
@@ -23,8 +21,6 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     FileNotFoundError: If csv_path does not exist
     ValueError: If DataFrame is empty or required columns are missing
     """
-    
-    title = f"Elo Rankings {custom_title}"
     
     title = f"Elo Rankings {custom_title}"
     df = pd.read_csv(csv_path)
@@ -81,7 +77,6 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     
     fig.update_layout(
         title=title,
-        title=title,
         xaxis_title="Matchday",
         yaxis_title="Elo Rating",
         hovermode='x unified',
@@ -90,4 +85,3 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     )
     
     return fig
-

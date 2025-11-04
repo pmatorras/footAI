@@ -11,7 +11,6 @@ download-SP:
 
 elo-SP:
 	python main.py elo --country SP --div SP1
-<<<<<<< HEAD
 	python main.py elo --country SP --div SP2
 
 COUNTRY ?= SP
@@ -22,6 +21,4 @@ test_elo:
 	python main.py download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
 	python main.py elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
 	python main.py plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
-=======
-	python main.py elo --country SP --div SP2
->>>>>>> 64b801394baaa584a66761ef2a2c572ebbd0ea39
+
