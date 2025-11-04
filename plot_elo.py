@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from pathlib import Path
 from common import COUNTRIES
+from colors import get_team_colors_dict
 
 def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
     """
@@ -23,6 +24,8 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     
     title = f"Elo Rankings {custom_title}"
     df = pd.read_csv(csv_path)
+    teams = df['HomeTeam'].unique()
+    team_colors = get_team_colors_dict(teams)
 
     if not Path(csv_path).exists(): raise FileNotFoundError(f"CSV file not found: {csv_path}")
     if df.empty: raise ValueError(f"CSV file is empty: {csv_path}")
@@ -50,14 +53,26 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     long_df['matchday'] = long_df.groupby('team').cumcount() + 1
     
     fig = go.Figure()
-    
-    for team in sorted(long_df['team'].unique()):
+
+    # Get final Elo for each team to sort legend
+    team_final_elo = {}
+    for team in long_df['team'].unique():
+        team_data = long_df[long_df['team'] == team]
+        final_elo = team_data.iloc[-1]['elo']
+        team_final_elo[team] = final_elo
+
+    # Sort by final Elo (highest first)
+    sorted_teams = sorted(team_final_elo.items(), key=lambda x: x[1], reverse=True)
+
+    for team, final_elo in sorted_teams:
         team_data = long_df[long_df['team'] == team]
         fig.add_trace(go.Scatter(
             x=team_data['matchday'],
             y=team_data['elo'],
             mode='lines+markers',
-            name=team
+            name=team,
+            line=dict(color=team_colors[team])  
+
         ))
     
     fig.update_layout(

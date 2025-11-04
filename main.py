@@ -70,17 +70,19 @@ def main():
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
         sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument("-m", "--multiseason", action="store_true", help="Calculate over multiple seasons")
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
 
     args = parser.parse_args()
+    multi = '_multi' if args.multiseason else ''
     print("Running the code with args:", args)
     divisions = args.division
     seasons_start = parse_start_years(args.season_start)
     for season_start in seasons_start:
         for division in divisions:
             season = year_to_season_code(season_start)
-            data_path = get_data_loc(season, division, args.country, args.raw_dir)
-            elo_path = get_data_loc(season, division, args.country, args.processed_dir, is_elo=True)
+            data_path = get_data_loc(season, division, args.country, args.raw_dir, multi=multi, verbose=args.verbose)
+            elo_path = get_data_loc(season, division, args.country, args.processed_dir, is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
             if args.cmd == "download":
                 success, message = download_football_data(season_str=season, division=division, filepath=data_path)
                 print(message)
@@ -99,7 +101,7 @@ def main():
                     for team, elo in sorted(final_elos.items(), key=lambda x: x[1], reverse=True):
                         print(f"{team}: {elo:.1f}")
             if args.cmd =="plot":
-                output_file = get_data_loc(season, division, args.country, FIG_DIR, is_fig=True) 
+                output_file = get_data_loc(season, division, args.country, FIG_DIR, is_elo=True, is_fig=True, multi=multi, verbose=args.verbose) 
                 fig = plot_elo_rankings(elo_path, division=division, custom_title=f"for {COUNTRIES[args.country]["divisions"][division]} ({COUNTRIES[args.country]["name"]})")
                 fig.write_html(output_file)
     print("Code ran sucessfully")

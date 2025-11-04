@@ -17,7 +17,7 @@ def new_elo(old_elo, expected, actual, k_factor=32):
     return old_elo + k_factor * (actual - expected)
 
 
-def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
+def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32, team_starting_elos=None):
     """
     Calculate ELO ratings for all teams based on match results.
     
@@ -33,6 +33,8 @@ def calculate_elo_ratings(matches_df, initial_elo=1500, k_factor=32):
     
     # Initialize ELO ratings
     team_elos = defaultdict(lambda: initial_elo)
+    if team_starting_elos:
+        team_elos.update(team_starting_elos)
     team_history = defaultdict(list)
     
     # Sort chronologically

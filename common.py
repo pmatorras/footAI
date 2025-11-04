@@ -49,18 +49,18 @@ def year_to_season_code(season):
     """Convert starting year to compact season format (e.g., 2024 -> '2425' for 2024-25)"""
     if isinstance(season, int) and season > 1000:
         next_year = (season % 100) + 1
-        season_str = f"{season %100}{next_year:02d}"
+        season = f"{season %100}{next_year:02d}"
     else:
-        season_str = str(season)
-    return season_str
+        season = str(season)
+    return season
 
-def get_data_loc(season_str, division, country, file_dir = None, is_elo=False, is_fig=False, verbose=False):
+def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, multi='', verbose=False):
     # Create data directory if it doesn't exist
     Path(file_dir).mkdir(parents=True, exist_ok=True)
     elo_suffix = '_elo' if is_elo else ''
     file_type = '.html' if is_fig else '.csv'
     # Create filename
-    filename = f"{country.upper()}_{season_str}_{division}{elo_suffix}{file_type}"
+    filename = f"{country.upper()}_{season}_{division}{elo_suffix}{multi}{file_type}"
     filepath =  os.path.join(file_dir, filename)
     if verbose: print(f"Chosen file: {filepath}")
     return filepath
