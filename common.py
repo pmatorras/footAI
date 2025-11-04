@@ -45,6 +45,7 @@ COUNTRIES = {
         }
     }
 }
+
 def year_to_season_code(season):
     """Convert starting year to compact season format (e.g., 2024 -> '2425' for 2024-25)"""
     if isinstance(season, int) and season > 1000:
@@ -54,9 +55,29 @@ def year_to_season_code(season):
         season = str(season)
     return season
 
+def get_season_paths(season, division, dirs, args):
+    """
+    Get file paths for a season/division combination.
+    
+    Returns a dict with keys: 'season', 'raw', 'elo', 'fig'
+    """
+    multi = '_multi' if args.multiseason else ''
+    raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
+    elo_path = get_data_loc(season, division, args.country, dirs['elo'], is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
+    fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, multi=multi, verbose=args.verbose)
+    
+    return {
+        'raw': raw_path,
+        'elo': elo_path,
+        'fig': fig_path
+    }
+
 def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, multi='', verbose=False):
-    # Create data directory if it doesn't exist
-    Path(file_dir).mkdir(parents=True, exist_ok=True)
+    """
+    Generate file path for data storage.
+    
+    Returns path as: {country}_{season}_{division}[_elo][_multi][.csv|.html]
+    """
     elo_suffix = '_elo' if is_elo else ''
     file_type = '.html' if is_fig else '.csv'
     # Create filename
@@ -64,3 +85,4 @@ def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fi
     filepath =  os.path.join(file_dir, filename)
     if verbose: print(f"Chosen file: {filepath}")
     return filepath
+

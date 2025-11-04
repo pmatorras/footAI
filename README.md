@@ -1,19 +1,67 @@
 # footAI
 
-Calculate and visualize Elo rankings for Spanish football divisions (LaLiga SP1 and SP2).
+Calculate and visualize **Elo rankings** for football teams across major European leagues. 
+This tool automatically downloads match data, computes dynamic Elo ratings for each team, 
+and generates interactive visualizations of team performance over time. 
+Supports multi-season analysis with configurable decay factors.
 
 ## Quick Start
 
-```
-# Download raw data and calculate Elo ratings
+```bash
+# Download data for Spanish La Liga Division 1, seasons 2022-2025
+python main.py download --country SP --div SP1 --season-start 22,23,24,25 -m
 
-python main.py --help
-python main.py 2024 --div 1
+# Calculate Elo rankings (single season)
+python main.py elo --country SP --div SP1 --season-start 24
+
+# Calculate Elo rankings (multiple seasons with decay factor)
+python main.py elo --country SP --div SP1 --season-start 22,23,24,25 -m --decay-factor 0.95
 
 # Plot the results
 
-python -c "from plot_elo import plot_elo_rankings; plot_elo_rankings('data/processed/laliga_with_elo_SP1_2024-25.csv').show()"
+python main.py plot --country SP --div SP1 --season-start 24
 ```
+
+
+
+## Supported Countries
+
+| Code | Country |
+|------|---------|
+| SP | Spain (La Liga) |
+| EN | England (Premier League) |
+| IT | Italy (Serie A) |
+| DE | Germany (Bundesliga) |
+| FR | France (Ligue 1) |
+
+
+
+
+## Command Options
+
+All subcommands (`download`, `elo`, `plot`) support these options:
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `--country` | Country code (default: SP) | `--country EN` |
+| `--div` | Division(s), comma-separated | `--div SP1,SP2` |
+| `--season-start` | Season start year(s), comma-separated | `--season-start 22,23,24` |
+| `-m, --multiseason` | Calculate across multiple seasons | `-m` |
+| `-v, --verbose` | Show detailed output | `-v` |
+| `--decay-factor` | Elo decay factor 0-1 (default: 0.95) | `--decay-factor 0.9` |
+| `--raw-dir` | Directory for raw data (default: `football_data`) | `--raw-dir my_data` |
+| `--processed-dir` | Directory for processed data | `--processed-dir my_output` |
+
+
+
+## Elo Rating
+
+Uses the official [Elo rating formula](https://en.wikipedia.org/wiki/Elo_rating_system):
+
+- Initial rating: 1500
+- K-factor: 32 (volatility per match)
+- Supports both single matches and season progression
+
 
 ## Pipeline
 
@@ -43,16 +91,13 @@ pip install pandas plotly requests
 
 ```
 data/
-├── raw/                                    # Downloaded, unmodified
-│   └── {country_division}_{seasom}.csv     # e.g SP1_2024-25.csv
-└── processed/                              # With Elo calculated
-│   └── {country_division}_{seasom}_elo.csv # e.g SP1_2024-25_elo.csv
+├── raw/                                            # Downloaded, unmodified
+│   └── {country}_{division}_{season}.csv           # e.g SP1_2024-25.csv
+└── processed/                                      # With Elo calculated
+│   └── {country}_{division}_{season}_elo.csv       # e.g SP1_2024-25_elo.csv
+│   └── {country}_{division}_{season}_elo_multi.csv # e.g SP1_2024-25_elo_multi.csv
+figures/                                            # interactive plots
+├─── {country}_{division}_{season}_elo.csv          # e.g SP1_2024-25_elo.
+└── {country}_{division}_{season}_elo_multi.html    # e.g SP1_2024-25_elo_multi.html
 ```
 
-## Elo Rating
-
-Uses the official [Elo rating formula](https://en.wikipedia.org/wiki/Elo_rating_system):
-
-- Initial rating: 1500
-- K-factor: 32 (volatility per match)
-- Supports both single matches and season progression
