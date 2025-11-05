@@ -3,7 +3,8 @@ import argparse
 from pathlib import Path
 from calculate_elo import calculate_elo_season, calculate_elo_multiseason
 from download_data import download_football_data
-from common import get_season_paths, year_to_season_code, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
+from promotion_relegation import identify_promotions_relegations_for_season, save_promotion_relegation
+from common import get_season_paths, year_to_season_code, get_previous_season, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
 from plot_elo import plot_elo_rankings
 
 class ValidateDivisionAction(argparse.Action):
@@ -95,12 +96,12 @@ def main():
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_down = sub.add_parser("download", help="Download new data")
+    p_promo = sub.add_parser('promotion-relegation', help="Identify promoted/relegated teams between seasons")
     p_elo = sub.add_parser('elo', help="Calculate ELO rankings")
-
     p_plot = sub.add_parser("plot", help="Plot ELO rankings")
 
 
-    for sp in (p_down, p_elo, p_plot):
+    for sp in (p_down, p_elo, p_plot, p_promo):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
         sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=["SP1"], help='League division (default: SP1)')
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
@@ -109,7 +110,7 @@ def main():
         sp.add_argument("-m", "--multiseason", action="store_true", help="Calculate over multiple seasons")
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
         sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
-
+        sp.add_argument("--elo-transfer", action="store_true", help="Transfer ELO ratings from relegated to promoted teams")
     args = parser.parse_args()
     print("Running the code with args:", args)
     divisions = args.division
@@ -117,9 +118,9 @@ def main():
 
     #Create dictionary with directories and ensure they exist
     dirs = {
-        'raw' : args.raw_dir,
-        'elo' : args.processed_dir,
-        'fig' : FIG_DIR
+        'raw'  : args.raw_dir,
+        'proc' : args.processed_dir,
+        'fig'  : FIG_DIR
     }
     for dir in dirs.keys():
         if args.verbose: print("creating", dirs[dir])
@@ -131,6 +132,16 @@ def main():
             for division in divisions:
                 paths = get_season_paths(season, division, dirs, args)
                 download_football_data(season, division, paths['raw'])
+
+    elif args.cmd == "promotion-relegation":        
+        for season in seasons:
+            print("season", season)
+            prev_season = get_previous_season(season)  # Auto-calculate (point 1)
+            results = identify_promotions_relegations_for_season(season, args.country, prev_season, dirs, args)
+            print(results, dirs)
+            save_promotion_relegation(results, season, args.country, dirs)
+            print(f"Saved promotion/relegation data for {prev_season} -> {season}") 
+             
     elif args.cmd == 'elo':
         if args.multiseason:
             print("calculating multi season")
@@ -141,14 +152,14 @@ def main():
                     paths = get_season_paths(season, division, dirs, args)
                     df = pd.read_csv(paths['raw'])
                     df_with_elos = calculate_elo_season(df)
-                    df_with_elos.to_csv(paths['elo'], index=False)
-                    print(f"{season} / {division} saved to {paths['elo']}")
+                    df_with_elos.to_csv(paths['proc'], index=False)
+                    print(f"{season} / {division} saved to {paths['proc']}")
 
     elif args.cmd == "plot":
         for season in seasons:
             for division in divisions:
                 paths = get_season_paths(season, division, dirs, args)
-                fig = plot_elo_rankings(paths['elo'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]})")
+                fig = plot_elo_rankings(paths['proc'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]})")
                 fig.write_html(paths['fig'])
                 print(f"{season} / {division} saved to {paths['fig']}")
 

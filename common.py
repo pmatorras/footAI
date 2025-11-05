@@ -63,13 +63,13 @@ def get_season_paths(season, division, dirs, args):
     """
     multi = '_multi' if args.multiseason else ''
     raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
-    elo_path = get_data_loc(season, division, args.country, dirs['elo'], is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
+    elo_path = get_data_loc(season, division, args.country, dirs['proc'], is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
     fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, multi=multi, verbose=args.verbose)
     
     return {
-        'raw': raw_path,
-        'elo': elo_path,
-        'fig': fig_path
+        'raw' : raw_path,
+        'proc': elo_path,
+        'fig' : fig_path
     }
 
 def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, multi='', verbose=False):
@@ -86,3 +86,12 @@ def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fi
     if verbose: print(f"Chosen file: {filepath}")
     return filepath
 
+def get_previous_season(season_str):
+    """Convert season string to previous season (e.g., '2324' -> '2223')."""
+    year_start = int(season_str[:2])
+    year_end = int(season_str[2:])
+    
+    prev_start = year_start - 1
+    prev_end = year_end - 1
+    
+    return f"{prev_start:02d}{prev_end:02d}"
