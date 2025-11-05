@@ -14,11 +14,23 @@ elo-SP:
 	python main.py elo --country SP --div SP2
 
 COUNTRY ?= SP
-DIVISION ?= SP1
-SEASON_START ?= 22,23,24,25
+DIVISION ?= SP1,SP2
+SEASON_START ?= 23,24
+download:
+	python main.py download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)
+promotion:
+	python main.py promotion-relegation --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
 
-test_elo:
-	python main.py download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
-	python main.py elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
+plot_multi:
 	python main.py plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
+elo_multi: 
+	python main.py elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
 
+test_multi: elo_multi plot_multi
+
+elo:
+	python main.py elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
+plot:
+	python main.py plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
+
+test_elo: elo plot

@@ -135,10 +135,8 @@ def main():
 
     elif args.cmd == "promotion-relegation":        
         for season in seasons:
-            print("season", season)
-            prev_season = get_previous_season(season)  # Auto-calculate (point 1)
+            prev_season = get_previous_season(season)
             results = identify_promotions_relegations_for_season(season, args.country, prev_season, dirs, args)
-            print(results, dirs)
             save_promotion_relegation(results, season, args.country, dirs)
             print(f"Saved promotion/relegation data for {prev_season} -> {season}") 
              

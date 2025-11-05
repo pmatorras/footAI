@@ -61,10 +61,14 @@ def get_season_paths(season, division, dirs, args):
     
     Returns a dict with keys: 'season', 'raw', 'elo', 'fig'
     """
-    multi = '_multi' if args.multiseason else ''
+    
+    if args.multiseason:
+        suffix = '_transfer' if args.elo_transfer else '_multi'  
+    else:
+        suffix = ''
     raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
-    elo_path = get_data_loc(season, division, args.country, dirs['proc'], is_elo=True, is_fig=False, multi=multi, verbose=args.verbose)
-    fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, multi=multi, verbose=args.verbose)
+    elo_path = get_data_loc(season, division, args.country, dirs['proc'], is_elo=True, is_fig=False, suffix=suffix, verbose=args.verbose)
+    fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, suffix=suffix, verbose=args.verbose)
     
     return {
         'raw' : raw_path,
@@ -72,7 +76,7 @@ def get_season_paths(season, division, dirs, args):
         'fig' : fig_path
     }
 
-def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, multi='', verbose=False):
+def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, suffix='', verbose=False):
     """
     Generate file path for data storage.
     
@@ -81,7 +85,7 @@ def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fi
     elo_suffix = '_elo' if is_elo else ''
     file_type = '.html' if is_fig else '.csv'
     # Create filename
-    filename = f"{country.upper()}_{season}_{division}{elo_suffix}{multi}{file_type}"
+    filename = f"{country.upper()}_{season}_{division}{elo_suffix}{suffix}{file_type}"
     filepath =  os.path.join(file_dir, filename)
     if verbose: print(f"Chosen file: {filepath}")
     return filepath

@@ -103,16 +103,16 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
     from common import get_season_paths
     
     regression_point = initial_elo
-    team_elos_carry = {}
+    team_elos_carry = {div: {} for div in divisions}  # Track per division
     print("DECAY FACTOR:", decay_factor)
     for season in seasons:
         for division in divisions:
             paths = get_season_paths(season, division, dirs, args)
             
             df = pd.read_csv(paths['raw'])
-            df_with_elos = calculate_elo_season(df, initial_elo=initial_elo,k_factor=k_factor, team_starting_elos=team_elos_carry)
-            df_with_elos.to_csv(paths['elo'], index=False)
-            print(f"{season} / {division}, saved to {paths['elo']}")
+            df_with_elos = calculate_elo_season(df, initial_elo=initial_elo,k_factor=k_factor, team_starting_elos=team_elos_carry[division])
+            df_with_elos.to_csv(paths['proc'], index=False)
+            print(f"{season} / {division}, saved to {paths['proc']}")
             
             # Extract and decay
             final_elos = {
@@ -120,7 +120,7 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                 for team in df_with_elos['HomeTeam'].unique()
             }
             
-            team_elos_carry = {
+            team_elos_carry[division] = {
                 team: regression_point + (elo - regression_point) * decay_factor
                 for team, elo in final_elos.items()
             }
