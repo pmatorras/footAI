@@ -157,7 +157,7 @@ def main():
         for season in seasons:
             for division in divisions:
                 paths = get_season_paths(season, division, dirs, args)
-                fig = plot_elo_rankings(paths['proc'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]})")
+                fig = plot_elo_rankings(paths['proc'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]}, season {season})")
                 fig.write_html(paths['fig'])
                 print(f"{season} / {division} saved to {paths['fig']}")
 

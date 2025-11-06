@@ -1,5 +1,7 @@
 import pandas as pd
 from collections import defaultdict
+from promotion_relegation import load_promotion_relegation
+from common import get_season_paths
 
 
 def expected_score(elo_a, elo_b):
@@ -100,12 +102,46 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
     Carries forward team Elo between seasons with decay factor to reflect
     that team strength degrades slightly during off-season.
     """
-    from common import get_season_paths
     
     regression_point = initial_elo
     team_elos_carry = {div: {} for div in divisions}  # Track per division
-    print("DECAY FACTOR:", decay_factor)
-    for season in seasons:
+    print("ELO TRANSFER MODE:", args.elo_transfer)
+    tier1_final_elos = None
+    tier2_final_elos = None
+    for season_idx, season in enumerate(seasons):
+        tier1_final_elos_this_season = None
+        tier2_final_elos_this_season = None
+
+         # if we have previous season data and the flag is on, do ELO transfer
+        if args.elo_transfer and season_idx > 0 and len(divisions) == 2:
+            promo_relego_df = load_promotion_relegation(season, country, dirs)
+            print(promo_relego_df)
+            if promo_relego_df is not None:
+                relegated = promo_relego_df[promo_relego_df['status'] == 'relegated']['team'].tolist()
+                promoted = promo_relego_df[promo_relego_df['status'] == 'promoted']['team'].tolist()
+                print(promoted, relegated)
+                if relegated and promoted:
+                    # Use last season's ELOs from tier1 and tier2
+                    if tier1_final_elos is None or tier2_final_elos is None:
+                        print("Skipping ELO transfer because previous season data missing")
+                    else:
+                        #define last season elos, pahts, and dfs
+                        last_eason_promoted_elos = [tier2_final_elos.get(team, initial_elo) for team in promoted]
+                        last_eason_relegated_elos = [tier1_final_elos.get(team, initial_elo) for team in relegated]
+                        paths_top = get_season_paths(season, divisions[0], dirs, args)
+                        df_top = pd.read_csv(paths_top['proc'])
+                        paths_lower = get_season_paths(season, divisions[1], dirs, args)
+                        df_lower = pd.read_csv(paths_lower['proc'])
+                        
+                        # Promoted teams to top division get ELOs from relegated teams in lower division
+                        for promoted_team, rel_elo in zip(promoted, last_eason_relegated_elos):
+                            team_elos_carry[divisions[0]][promoted_team] = rel_elo
+                            print(f"{divisions[0]}({season}): Transferred {rel_elo:.1f} to {promoted_team}")
+                        # Complementary, transfer the old ELO from SP2 to the newly demoted teams
+                        for relegated_team, promo_elo in zip(relegated, last_eason_promoted_elos):
+                            team_elos_carry[divisions[1]][relegated_team] = promo_elo
+                            print(f"{divisions[1]}({season}): Transferred {promo_elo:.1f} to {relegated_team}")
+
         for division in divisions:
             paths = get_season_paths(season, division, dirs, args)
             
@@ -119,9 +155,16 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                 team: df_with_elos[df_with_elos['HomeTeam'] == team].iloc[-1]['HomeElo']
                 for team in df_with_elos['HomeTeam'].unique()
             }
-            
-            team_elos_carry[division] = {
+            team_elos_carry[division]= {
                 team: regression_point + (elo - regression_point) * decay_factor
                 for team, elo in final_elos.items()
             }
+            if division == divisions[0]:
+                tier1_final_elos_this_season = final_elos.copy()
+            else:
+                tier2_final_elos_this_season = final_elos.copy()
 
+       
+        # Update previous season final elos for next iteration
+        tier1_final_elos = tier1_final_elos_this_season
+        tier2_final_elos = tier2_final_elos_this_season
