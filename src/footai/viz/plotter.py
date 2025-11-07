@@ -1,8 +1,8 @@
 import plotly.graph_objects as go
 import pandas as pd
 from pathlib import Path
-from common import COUNTRIES
-from colors import get_team_colors_dict
+from footai.core.config import COUNTRIES
+from footai.viz.themes import get_team_colors_dict
 
 def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
     """

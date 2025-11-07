@@ -1,7 +1,6 @@
 
 import pandas as pd
-from pathlib import Path
-from common import get_season_paths, COUNTRIES
+from footai.core.config import get_season_paths, COUNTRIES
 
 def identify_promotions_relegations_for_season(season, country, prev_season, dirs, args):
     """

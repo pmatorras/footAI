@@ -1,5 +1,7 @@
 # footAI
 
+> **v0.1 - Elo Engine** | **v0.2 - ML Predictions** (In Development)
+
 Calculate and visualize **Elo rankings** for football teams across major European leagues. 
 This tool automatically downloads match data, computes dynamic Elo ratings for each team, 
 and generates interactive visualizations of team performance over time. 

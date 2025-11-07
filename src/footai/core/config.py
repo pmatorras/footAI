@@ -1,6 +1,6 @@
 from pathlib import Path
 import os 
-ROOT_DIR = Path(__file__).resolve().parents[0] #to be changed if this goes to /src/
+ROOT_DIR = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
 DATA_DIR = ROOT_DIR / 'data/'
 RAW_DIR = DATA_DIR / 'raw/'
 PROCESSED_DIR = DATA_DIR /'processed/'

@@ -1,6 +1,6 @@
 from dash import Dash, dcc, html, Input, Output
-from plot_elo import plot_elo_rankings
-from common import get_data_loc, season_to_season_str, PROCESSED_DIR, COUNTRY, DIV
+from footai.viz.plotter import plot_elo_rankings
+from footai.core.config import get_data_loc, season_to_season_str, PROCESSED_DIR, COUNTRY, DIV
 
 app = Dash(__name__)
 

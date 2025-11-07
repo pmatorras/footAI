@@ -1,81 +1,15 @@
 import pandas as pd
 import argparse
 from pathlib import Path
-from calculate_elo import calculate_elo_season, calculate_elo_multiseason
-from download_data import download_football_data
-from promotion_relegation import identify_promotions_relegations_for_season, save_promotion_relegation
-from common import get_season_paths, year_to_season_code, get_previous_season, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
-from plot_elo import plot_elo_rankings
+from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
+from footai.data.downloader import download_football_data
+from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
+from footai.core.config import get_season_paths, year_to_season_code, get_previous_season, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
+from footai.viz.plotter import plot_elo_rankings
 
-class ValidateDivisionAction(argparse.Action):
-    """Validate that provided divisions exist for the selected country."""
-    def __call__(self, parser, namespace, values, option_string=None):
-        country = namespace.country
-        print(COUNTRIES.keys())
-        divisions = [d.strip() for d in values.split(',')]
-        
-        for div in divisions:
-            if div not in COUNTRIES[country]['divisions']:
-                valid = ', '.join(COUNTRIES[country]['divisions'].keys())
-                parser.error(f"Invalid division '{div}' for {country}. Choose from: {valid}")
-        
-        setattr(namespace, self.dest, divisions)
+from footai.core.utils import parse_start_years
+from footai.core.validators import ValidateDivisionAction, validate_decay_factor
 
-def validate_decay_factor(value):
-    """
-    Validate that decay factor is between 0 and 1 (inclusive).
-    
-    Args:
-        value: String value from command line
-        
-    Returns:
-        float: Validated decay factor
-        
-    Raises:
-        argparse.ArgumentTypeError: If value is not in valid range
-    """
-    try:
-        fvalue = float(value)
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"Decay factor must be a number, got '{value}'")
-    
-    if fvalue < 0 or fvalue > 1:
-        raise argparse.ArgumentTypeError(f"Decay factor must be between 0 and 1 (inclusive), got {fvalue}")
-    
-    return fvalue
-
-
-def parse_start_years(years_str):
-    """
-    Parse season start years and convert to season codes.
-    
-    Takes comma-separated years and converts each to a compact season format.
-    Supports both 4-digit (2024) and 2-digit (24) formats.
-    
-    Args:
-        seasons_str: Comma-separated years (e.g., "2024,2025" or "23,24")
-    
-    Returns:
-        List of season codes (e.g., ['2425', '2526'])
-    
-    Examples:
-        >>> parse_season_codes("2024,2025")
-        ['2425', '2526']
-        >>> parse_season_codes("23,24")
-        ['2324', '2425']
-    """
-    years = []
-    for year_str in years_str.split(','):
-        year_str = year_str.strip()
-        year = int(year_str)
-        
-        # If 2-digit year, expand to 20xx
-        if year < 100:
-            year = 2000 + year
-        
-        years.append(year_to_season_code(year))
-    
-    return years
 
 
 
