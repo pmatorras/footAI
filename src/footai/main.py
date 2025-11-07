@@ -1,6 +1,8 @@
+"""Main execution logic for footAI commands."""
 import pandas as pd
 import argparse
 from pathlib import Path
+from footai.cli import create_parser
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
 from footai.data.downloader import download_football_data
 from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
@@ -10,47 +12,8 @@ from footai.viz.plotter import plot_elo_rankings
 from footai.core.utils import parse_start_years
 from footai.core.validators import ValidateDivisionAction, validate_decay_factor
 
-
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description='Download football data and calculate elo rankings', 
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-            Examples:
-            python download_football.py 2024                    # La Liga 2024-25, Division 1
-            python download_football.py 2024 --division 2       # La Liga 2024-25, Division 2
-            python download_football.py 2021 --country SP       # La Liga 2021-22
-            python download_football.py 2024 --data-dir my_data # Save to custom directory
-            """
-        )
-
-    parser = argparse.ArgumentParser(prog="footAI", description="FootAI pipeline")
-    sub = parser.add_subparsers(dest="cmd", required=True)
-
-    p_down = sub.add_parser("download", help="Download new data")
-    p_promo = sub.add_parser('promotion-relegation', help="Identify promoted/relegated teams between seasons")
-    p_elo = sub.add_parser('elo', help="Calculate ELO rankings")
-    p_plot = sub.add_parser("plot", help="Plot ELO rankings")
-
-
-    for sp in (p_down, p_elo, p_plot, p_promo):
-        sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
-        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=["SP1"], help='League division (default: SP1)')
-        sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
-        sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
-        sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
-        sp.add_argument("-m", "--multiseason", action="store_true", help="Calculate over multiple seasons")
-        sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
-        sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
-        sp.add_argument("--elo-transfer", action="store_true", help="Transfer ELO ratings from relegated to promoted teams")
-    args = parser.parse_args()
-    print("Running the code with args:", args)
-    divisions = args.division
-    seasons = parse_start_years(args.season_start)
-
-    #Create dictionary with directories and ensure they exist
+def setup_directories(args):
+    '''Create dictionary with directories and ensure they exist'''
     dirs = {
         'raw'  : args.raw_dir,
         'proc' : args.processed_dir,
@@ -59,7 +22,17 @@ def main():
     for dir in dirs.keys():
         if args.verbose: print("creating", dirs[dir])
         Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
+    return dirs
 
+def main():
+    
+    parser = create_parser()
+    args = parser.parse_args()
+    if args.verbose: print("Running the code with args:", args)
+
+    divisions = args.division
+    seasons = parse_start_years(args.season_start)
+    dirs = setup_directories(args)
 
     if args.cmd == "download":
         for season in seasons:
