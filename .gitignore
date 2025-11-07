@@ -3,4 +3,4 @@ __pycache__/
 *.py[cod]
 /data/
 /figures/
-*_with_elo.csv
+*.egg-info

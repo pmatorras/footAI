@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "footai"
+version = "0.1.0"
+dependencies = [
+    "pandas",
+    "plotly",
+    "requests",
+    "dash",
+]
+
+[project.scripts]
+footai = "footai.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
