@@ -1,6 +1,24 @@
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
-/data/
-/figures/
-*.egg-info
+
+# Data & outputs (large files)
+data/
+figures/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
