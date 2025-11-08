@@ -39,6 +39,9 @@ footai download --country SP --div SP1 --season-start 22,23,24,25 -m
 # Calculate Elo rankings (single season)
 footai elo --country SP --div SP1 --season-start 24
 
+# Get promotions and relegations per season
+footai promotion-relegation --country SP --season-start 23,24
+
 # Calculate Elo rankings (multiple seasons with decay factor) and transfering the elo between promoted and relegated teams
 footai elo --country SP --div SP1 --season-start 22,23,24,25 --multiseason --elo-transfer --decay-factor 0.95
 
@@ -73,16 +76,18 @@ footai download --country SP --season-start 24
 footai download --country EN --season-start 23,24 -m  # Multiple seasons
 ```
 
+**promotion-relegation** - Identify promoted/relegated teams between seasons
+```bash
+footai promotion-relegation --country SP --season-start 23,24
+```
+
 **elo** - Calculate Elo rankings for teams
 ```bash
 footai elo --country SP --season-start 24
 footai elo --season-start 24 -m --decay-factor 0.95  # Multi-season with decay
 ```
 
-**promotion-relegation** - Identify promoted/relegated teams between seasons
-```bash
-footai promotion-relegation --country SP --season-start 23,24
-```
+
 
 **plot** - Generate interactive visualizations of Elo progression
 ```bash
