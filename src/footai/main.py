@@ -17,7 +17,9 @@ def setup_directories(args):
     dirs = {
         'raw'  : args.raw_dir,
         'proc' : args.processed_dir,
+        'feat' : args.features_dir,
         'fig'  : FIG_DIR
+
     }
     for dir in dirs.keys():
         if args.verbose: print("creating", dirs[dir])
@@ -59,6 +61,24 @@ def main():
                     df_with_elos = calculate_elo_season(df)
                     df_with_elos.to_csv(paths['proc'], index=False)
                     print(f"{season} / {division} saved to {paths['proc']}")
+    elif args.cmd == 'features':
+        for season in seasons:
+            for division in divisions:
+                from footai.ml import feature_engineering
+                paths = get_season_paths(season, division, dirs, args)
+                # Load your elo-enriched data
+                df = pd.read_csv(paths['proc'])
+
+                # Engineer features
+                enriched_df = feature_engineering.engineer_features(
+                    df, window_sizes=[3, 5], verbose=True
+                )
+
+                # Save
+                feature_engineering.save_features(
+                    enriched_df, paths['feat'], verbose=True
+                )
+
 
     elif args.cmd == "plot":
         for season in seasons:

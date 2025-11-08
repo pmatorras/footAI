@@ -128,9 +128,9 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                         last_eason_promoted_elos = [tier2_final_elos.get(team, initial_elo) for team in promoted]
                         last_eason_relegated_elos = [tier1_final_elos.get(team, initial_elo) for team in relegated]
                         paths_top = get_season_paths(season, divisions[0], dirs, args)
-                        df_top = pd.read_csv(paths_top['proc'])
+                        #df_top = pd.read_csv(paths_top['proc'])
                         paths_lower = get_season_paths(season, divisions[1], dirs, args)
-                        df_lower = pd.read_csv(paths_lower['proc'])
+                        #df_lower = pd.read_csv(paths_lower['proc'])
                         
                         # Promoted teams to top division get ELOs from relegated teams in lower division
                         for promoted_team, rel_elo in zip(promoted, last_eason_relegated_elos):
