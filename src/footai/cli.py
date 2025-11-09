@@ -25,9 +25,10 @@ def create_parser():
     p_elo = sub.add_parser('elo', help="Calculate ELO rankings")
     p_feat = sub.add_parser('features', help="Calculate feature analysis varialbes")
     p_plot = sub.add_parser("plot", help="Plot ELO rankings")
+    p_train = sub.add_parser("train", help="Plot ELO rankings")
 
 
-    for sp in (p_down, p_elo, p_feat, p_plot, p_promo):
+    for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
         sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=["SP1"], help='League division (default: SP1)')
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())

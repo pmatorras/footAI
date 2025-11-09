@@ -1,6 +1,5 @@
 """Main execution logic for footAI commands."""
 import pandas as pd
-import argparse
 from pathlib import Path
 from footai.cli import create_parser
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
@@ -10,8 +9,8 @@ from footai.core.config import get_season_paths, year_to_season_code, get_previo
 from footai.viz.plotter import plot_elo_rankings
 
 from footai.core.utils import parse_start_years
-from footai.core.validators import ValidateDivisionAction, validate_decay_factor
-
+from footai.ml.training import train_baseline_model
+from footai.ml.evaluation import print_results_summary
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {
@@ -79,6 +78,26 @@ def main():
                     enriched_df, paths['feat'], verbose=True
                 )
 
+    elif args.cmd == "train":
+        print("yoo")
+        all_results={}
+        for season in seasons:
+            all_results[season] = {}
+            for division in divisions:
+                paths = get_season_paths(season, division, dirs, args)
+                features_csv = paths['feat']
+                print("\n" + "="*70)
+                print(f"TRAINING for {division} ({season})")
+                print("="*70)
+                # Train baseline model
+                results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
+                all_results[season][division] = results['accuracy']
+
+                print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
+                print(f"Features used: {len(results['feature_names'])}")
+                print("="*70)
+        print(divisions)
+        print_results_summary(all_results, divisions)
 
     elif args.cmd == "plot":
         for season in seasons:

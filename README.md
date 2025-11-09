@@ -30,6 +30,15 @@ This project takes the fetches football data from the main European leages, from
 - Assigns to newly promoted teams the Elo ranking from last season's demoted teams.
 
 It also produces plots for each given season, and an interactive dashboard
+
+## Requirements
+
+- **Python**: 3.12+
+- **Core dependencies**: pandas, plotly, requests
+- **ML dependencies**: scikit-learn, xgboost, lightgbm, joblib
+
+For full dependency list and versions, see [`pyproject.toml`](pyproject.toml).
+
 ## Quick Start
 
 ```bash
@@ -44,6 +53,9 @@ footai promotion-relegation --country SP --season-start 23,24
 
 # Calculate Elo rankings (multiple seasons with decay factor) and transfering the elo between promoted and relegated teams
 footai elo --country SP --div SP1 --season-start 22,23,24,25 --multiseason --elo-transfer --decay-factor 0.95
+
+# Train a ML model (WIP)
+footai train --country SP --div SP1,SP2 --season-start 23,24 --elo-transfer  -m 
 
 # Plot the results
 footai plot --country SP --div SP1 --season-start 24 --multiseason --elo-transfer
@@ -87,6 +99,11 @@ footai elo --country SP --season-start 24
 footai elo --season-start 24 -m --decay-factor 0.95  # Multi-season with decay
 ```
 
+**train** - Train a ML model (WIP, currently only a random forest, and trained per season)
+```bash
+footai train --country SP --div SP1,SP2 --season-start 24 --elo-transfer  -m 
+
+```
 
 
 **plot** - Generate interactive visualizations of Elo progression
@@ -128,13 +145,14 @@ footai promotion-relegation --country SP --season-start 23,24 -v --elo-transfer
 
 ## Roadmap
 
-**Current Features (v0.1)**
+**Current Features (v0.3)**
 - ✅ Elo calculations
 - ✅ Multi-season analysis
-
-**In Development (v0.2)**
-- 🔄 ML predictions
-- 🔄 Feature engineering
+- ✅ ML predictions
+- ✅ Feature engineering
+**In Development (v0.4)**
+- 🔄 Multi season ML predictions
+- 🔄 Feature engineering tweaking
 
 
 
@@ -168,6 +186,11 @@ src/footai/
 │ ├── init.py
 │ └── downloader.py # Download match data from football-data.co.uk
 │
+├── ml/                        # Machine Learning (NEW)
+│   ├── feature_engineering.py # Rolling features, odds normalization
+│   ├── models.py              # Model training (RandomForest, XGBoost)
+│   └── evaluation.py          # Results summary, benchmarks, metrics
+│
 └── viz/ # Visualization & UI
 ├── init.py
 ├── plotter.py # Interactive Plotly charts
@@ -179,13 +202,15 @@ src/footai/
 
 ## Files and outputs
 
-```
+```bash
 data/
 ├── raw/                                            # Downloaded, unmodified
 │   └── {country}_{division}_{season}.csv           # e.g SP1_2024-25.csv
 └── processed/                                      # With Elo calculated
 │   └── {country}_{division}_{season}_elo.csv       # e.g SP1_2024-25_elo.csv
 │   └── {country}_{division}_{season}_elo_multi.csv # e.g SP1_2024-25_elo_multi.csv
+models/                                             # interactive plots
+├─── {season}_{division}_baseline_rf.csv            # e.g SP1_2024-25_elo.
 figures/                                            # interactive plots
 ├─── {country}_{division}_{season}_elo.csv          # e.g SP1_2024-25_elo.
 └── {country}_{division}_{season}_elo_multi.html    # e.g SP1_2024-25_elo_multi.html
@@ -195,16 +220,14 @@ figures/                                            # interactive plots
 
 | Code | Country |
 |------|---------|
-| SP | Spain (La Liga) |
-| EN | England (Premier League) |
-| IT | Italy (Serie A) |
-| DE | Germany (Bundesliga) |
-| FR | France (Ligue 1) |
+| SP | Spain (La Liga, Hypermotion) |
+| EN | England (Premier League, FA Championship) |
+| IT | Italy (Serie A/B) |
+| DE | Germany (Bundesliga 1/2) |
+| FR | France (Ligue 1/2) |
 
-## Requirements
 
-- Python 3.12+
-- pandas, plotly, requests
+
 
 ## License
 
