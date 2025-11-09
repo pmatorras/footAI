@@ -3,7 +3,11 @@ help:
 	@echo "  download-SP    - Download Spanish data"
 	@echo "  elo-SP        - Get ELO for Spain"
 
+# If you run 'make train VERBOSE=yes' it will be 'yes'.
+VERBOSE ?= no
 
+# Define a variable that holds the flag if VERBOSE is 'yes', otherwise empty
+PYTHON_FLAGS = $(if $(filter $(VERBOSE),yes true 1),-v,)
 
 download-SP:
 	footai download --country SP --div SP1
@@ -30,6 +34,13 @@ test_multi: elo_multi plot_multi
 
 elo:
 	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
+features:
+	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m -v
+
+prepare_train: download promotion elo features
+train: 
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m $(PYTHON_FLAGS)
+
 plot:
 	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
 

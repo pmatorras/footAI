@@ -3,7 +3,8 @@ import os
 ROOT_DIR = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
 DATA_DIR = ROOT_DIR / 'data/'
 RAW_DIR = DATA_DIR / 'raw/'
-PROCESSED_DIR = DATA_DIR /'processed/'
+PROCESSED_DIR = DATA_DIR / 'processed/'
+FEATURES_DIR = DATA_DIR / 'features/'
 FIG_DIR = ROOT_DIR / 'figures/'
 COUNTRIES = {
     "SP" : {
@@ -66,24 +67,27 @@ def get_season_paths(season, division, dirs, args):
         suffix = '_transfer' if args.elo_transfer else '_multi'  
     else:
         suffix = ''
+
     raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
-    elo_path = get_data_loc(season, division, args.country, dirs['proc'], is_elo=True, is_fig=False, suffix=suffix, verbose=args.verbose)
-    fig_path = get_data_loc(season, division, args.country, dirs['fig'], is_elo=False, is_fig=True, suffix=suffix, verbose=args.verbose)
+    elo_path = get_data_loc(season, division, args.country, dirs['proc'], file_type='elo', suffix=suffix, verbose=args.verbose)
+    feat_path = get_data_loc(season, division, args.country, dirs['feat'], suffix='_feat', verbose=args.verbose)
+    fig_path = get_data_loc(season, division, args.country, dirs['fig'], file_type='fig', suffix=suffix, verbose=args.verbose)
     
     return {
         'raw' : raw_path,
         'proc': elo_path,
+        'feat': feat_path,
         'fig' : fig_path
     }
 
-def get_data_loc(season, division, country, file_dir = None, is_elo=False, is_fig=False, suffix='', verbose=False):
+def get_data_loc(season, division, country, file_dir = None, file_type='', suffix='', verbose=False):
     """
     Generate file path for data storage.
     
     Returns path as: {country}_{season}_{division}[_elo][_multi][.csv|.html]
     """
-    elo_suffix = '_elo' if is_elo else ''
-    file_type = '.html' if is_fig else '.csv'
+    elo_suffix = '_elo' if 'elo' in file_type else ''
+    file_type = '.html' if 'fig' in file_type else '.csv'
     # Create filename
     filename = f"{country.upper()}_{season}_{division}{elo_suffix}{suffix}{file_type}"
     filepath =  os.path.join(file_dir, filename)
