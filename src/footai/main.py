@@ -82,23 +82,37 @@ def main():
     elif args.cmd == "train":
         print("yoo")
         all_results={}
-        for season in seasons:
-            all_results[season] = {}
+        if args.multiseason:
             for division in divisions:
-                paths = get_season_paths(season, division, dirs, args)
-                features_csv = paths['feat']
+                features_csv = dirs['feat'] / f"{division}_{seasons[0]}_to_{seasons[-1]}.csv" #should be generalised
                 print("\n" + "="*70)
-                print(f"TRAINING for {division} ({season})")
+                print(f"TRAINING for {division} ({seasons})")
                 print("="*70)
                 # Train baseline model
-                results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
-                all_results[season][division] = results['accuracy']
+                results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{seasons[0]}_to{seasons[-1]}_{division}_baseline_rf.pkl",args=args)
+                all_results[division] = results['accuracy']
 
                 print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
                 print(f"Features used: {len(results['feature_names'])}")
-                print("="*70)
-        print(divisions)
-        print_results_summary(all_results, divisions)
+                print("="*70)         
+        else:
+            for season in seasons:
+                all_results[season] = {}
+                for division in divisions:
+                    paths = get_season_paths(season, division, dirs, args)
+                    features_csv = paths['feat']
+                    print("\n" + "="*70)
+                    print(f"TRAINING for {division} ({season})")
+                    print("="*70)
+                    # Train baseline model
+                    results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
+                    all_results[season][division] = results['accuracy']
+
+                    print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
+                    print(f"Features used: {len(results['feature_names'])}")
+                    print("="*70)
+            print(divisions)
+            print_results_summary(all_results, divisions)
 
     elif args.cmd == "plot":
         for season in seasons:
