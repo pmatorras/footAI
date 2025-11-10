@@ -11,6 +11,8 @@ from footai.viz.plotter import plot_elo_rankings
 from footai.core.utils import parse_start_years
 from footai.ml.training import train_baseline_model
 from footai.ml.evaluation import print_results_summary
+from footai.ml.feature_engineering import engineer_features, engineer_multiseason_features, save_features
+
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {
@@ -60,23 +62,22 @@ def main():
                     df_with_elos = calculate_elo_season(df)
                     df_with_elos.to_csv(paths['proc'], index=False)
                     print(f"{season} / {division} saved to {paths['proc']}")
+
     elif args.cmd == 'features':
-        for season in seasons:
-            for division in divisions:
-                from footai.ml import feature_engineering
-                paths = get_season_paths(season, division, dirs, args)
-                # Load your elo-enriched data
-                df = pd.read_csv(paths['proc'])
+        if args.multiseason:
+            print("WIP")
+            engineer_multiseason_features( seasons, divisions, dirs, window_sizes=[3, 5], args=args)
+        else:
+            for season in seasons:
+                for division in divisions:
+                    paths = get_season_paths(season, division, dirs, args)
+                    # Load your elo-enriched data
+                    df = pd.read_csv(paths['proc'])
 
-                # Engineer features
-                enriched_df = feature_engineering.engineer_features(
-                    df, window_sizes=[3, 5], verbose=True
-                )
-
-                # Save
-                feature_engineering.save_features(
-                    enriched_df, paths['feat'], verbose=True
-                )
+                    # Engineer features
+                    enriched_df = engineer_features(df, window_sizes=[3, 5], verbose=True)
+                    # Save
+                    save_features(enriched_df, paths['feat'], verbose=True)
 
     elif args.cmd == "train":
         print("yoo")

@@ -33,9 +33,13 @@ elo_multi:
 test_multi: elo_multi plot_multi
 
 elo:
-	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
-features:
+	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  
+
+features_multi:
 	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m -v
+
+features:
+	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -v
 
 prepare_train: download promotion elo features
 train: 
