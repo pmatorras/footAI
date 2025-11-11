@@ -7,8 +7,8 @@ Simple baseline implementation for footAI v0.2
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 import joblib
 from pathlib import Path
 from footai.ml.models import get_models, select_features
@@ -55,15 +55,13 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     if args.verbose:
         print(f"\nUsing {len(feature_cols)} features ({feature_set} set)")
 
-    # Drop rows with NaN features (first matches)
-    df_clean = df.dropna(subset=feature_cols + ['FTR'])
-
-    if args.verbose:
-        print(f"After dropping NaN: {len(df_clean)} matches ({len(df_clean)/len(df)*100:.1f}%)")
 
     # Prepare X, y
-    X = df_clean[feature_cols]
-    y = df_clean['FTR']  # Home/Draw/Away
+    X = df[feature_cols]
+    y = df['FTR']  # Home/Draw/Away
+
+    assert not X.empty, "Feature DataFrame is empty!"
+    assert len(X) == len(y), "Mismatch in features and targets length"
 
     # Temporal split (train on earlier matches)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -85,6 +83,42 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     if args.verbose:
         print("\nTraining Random Forest...")
 
+
+    #check CV via timeseries
+    tscv = TimeSeriesSplit(n_splits=3)
+    cv_acc = []; cv_draw_recall = []
+    label_map = {'H': 0, 'D': 1, 'A': 2}  # Standard for FTR
+
+    for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
+        X_t, X_v = df.iloc[train_idx][feature_cols], df.iloc[test_idx][feature_cols]
+        y_t, y_v_raw = df.iloc[train_idx]['FTR'], df.iloc[test_idx]['FTR']  # Use raw FTR (strings)
+        
+        model.fit(X_t, y_t)  # Fit on raw (model handles strings)
+        y_p_raw = model.predict(X_v)  # Predictions as strings
+        
+        # Map to numeric for metrics
+        if y_v_raw.dtype == 'object':
+            y_v = y_v_raw.map(label_map)
+            y_p_series = pd.Series(y_p_raw)  # Convert array to Series for map
+            y_p = y_p_series.map(label_map)
+        else:
+            y_v = y_v_raw
+            y_p = y_p_raw
+        
+        fold_acc = accuracy_score(y_v, y_p)
+        fold_draw_recall = recall_score(y_v, y_p, labels=[1], average=None, zero_division=0)[0]
+        
+        cv_acc.append(fold_acc)
+        cv_draw_recall.append(fold_draw_recall)
+        
+        print(f"Fold {fold+1} Acc: {fold_acc:.3f}, Draw Recall: {fold_draw_recall:.3f}")
+
+    print(f"CV Acc ({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
+    print(f"CV Draw Recall: {np.mean(cv_draw_recall):.3f} ± {np.std(cv_draw_recall):.3f}")
+
+
+
+    #Full train/test
     model.fit(X_train, y_train)
 
     # Predict
@@ -110,7 +144,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         print(classification_report(y_test, y_pred))
 
         print("-"*70)
-        print("Confusion Matrix:")
+        print(f"Confusion Matrix ({feature_set}):")
         print("-"*70)
         cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
         print("         Predicted")
@@ -120,15 +154,39 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         print(f"       A {cm[2][0]:4d} {cm[2][1]:4d} {cm[2][2]:4d}")
 
         print("\n" + "-"*70)
-        print("Feature Importance (Top 10):")
+        print(f"Feature Importance ({feature_set}, Top 10):")
         print("-"*70)
         # Get feature importance from the classifier in pipeline
         clf = model.named_steps['clf']
+
+
+        # Handle different classifiers (RF/GB use feature_importances_; LogReg uses coef_)
+        if hasattr(clf, 'feature_importances_'):
+            importances = clf.feature_importances_
+        elif hasattr(clf, 'coef_'):
+            importances = np.abs(clf.coef_).mean(axis=0)  # Mean abs coef for multi-class
+        else:
+            print("Warning: Classifier has no importances/coef_; skipping.")
+            return { ... }  # Or raise/continue without importance
+
+        n_importances = len(importances)
+        n_features_list = len(feature_cols)
+
+        print(f"Debug: Importances length: {n_importances}, Feature list length: {n_features_list}")  # Remove after fix
+
+        if n_importances != n_features_list:
+            print(f"Warning: Length mismatch! Aligning feature_cols to importances length ({n_importances}).")
+            # Slice to match (assumes pipeline uses first N features in order)
+            aligned_features = feature_cols[:n_importances]
+            # If you want exact names post-pipeline, add: aligned_features = clf.feature_names_in_ if hasattr(clf, 'feature_names_in_') else aligned_features
+        else:
+            aligned_features = feature_cols
+
         importance_df = pd.DataFrame({
-            'feature': feature_cols,
-            'importance': clf.feature_importances_
+            'feature': aligned_features,
+            'importance': importances
         }).sort_values('importance', ascending=False)
-        print(importance_df.head(10).to_string(index=False))
+        print(importance_df.head(30).to_string(index=False))
 
     # Save model if requested
     if save_model:
@@ -189,34 +247,3 @@ def predict_match(model, home_features, away_features, feature_names):
         'probabilities': dict(zip(classes, probabilities)),
         'confidence': max(probabilities)
     }
-
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python models.py <features_csv>")
-        print("Example: python models.py data/processed/SP_2425_SP1_features.csv")
-        sys.exit(1)
-
-    features_csv = sys.argv[1]
-
-    # Train baseline model
-    results = train_baseline_model(
-        features_csv,
-        feature_set="baseline",
-        test_size=0.2,
-        save_model="models/baseline_rf.pkl",
-        verbose=True
-    )
-
-    print("\n" + "="*70)
-    print("TRAINING COMPLETE")
-    print("="*70)
-    print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
-    print(f"Features used: {len(results['feature_names'])}")
-    print(f"\nNext steps:")
-    print("  1. Analyze feature importance above")
-    print("  2. Check confusion matrix for prediction patterns")
-    print("  3. Try 'extended' or 'all' feature sets")
-    print("  4. Compare with betting odds accuracy")

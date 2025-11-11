@@ -1,0 +1,38 @@
+name: Lint Documentation
+
+on:
+  push:
+    branches: [ main, develop ]  # Run on pushes to main/develop
+    paths:  # Only if .md files change
+      - 'docs/**.md'
+      - 'README.md'  # Include if relevant
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**.md'
+      - 'README.md'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest  # Free GitHub runner
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  # Standard action to get your repo
+
+    - name: Set up Node.js  # For markdownlint-cli (JS-based)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install markdownlint
+      run: npm install -g markdownlint-cli  # Global install
+
+    - name: Lint Markdown files
+      run: |
+        markdownlint "**/*.md" --config .markdownlint.json  # Lint all .md
+        # Or specific: markdownlint "docs/feature_configuration.md"
+      continue-on-error: false  # Fail workflow if lint errors
+
+    - name: Auto-fix if possible (optional)
+      run: markdownlint "**/*.md" --fix  # Fixes simple issues like spacing

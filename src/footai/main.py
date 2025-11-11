@@ -5,12 +5,14 @@ from footai.cli import create_parser
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
 from footai.data.downloader import download_football_data
 from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
-from footai.core.config import get_season_paths, year_to_season_code, get_previous_season, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
+from footai.core.config import get_season_paths, get_previous_season, FIG_DIR, COUNTRIES
 from footai.viz.plotter import plot_elo_rankings
 
 from footai.core.utils import parse_start_years
 from footai.ml.training import train_baseline_model
 from footai.ml.evaluation import print_results_summary
+from footai.ml.feature_engineering import engineer_features, engineer_multiseason_features, save_features
+
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {
@@ -60,44 +62,56 @@ def main():
                     df_with_elos = calculate_elo_season(df)
                     df_with_elos.to_csv(paths['proc'], index=False)
                     print(f"{season} / {division} saved to {paths['proc']}")
+
     elif args.cmd == 'features':
-        for season in seasons:
-            for division in divisions:
-                from footai.ml import feature_engineering
-                paths = get_season_paths(season, division, dirs, args)
-                # Load your elo-enriched data
-                df = pd.read_csv(paths['proc'])
+        if args.multiseason:
+            engineer_multiseason_features( seasons, divisions, dirs, window_sizes=[3, 5], args=args)
+        else:
+            for season in seasons:
+                for division in divisions:
+                    paths = get_season_paths(season, division, dirs, args)
+                    # Load your elo-enriched data
+                    df = pd.read_csv(paths['proc'])
 
-                # Engineer features
-                enriched_df = feature_engineering.engineer_features(
-                    df, window_sizes=[3, 5], verbose=True
-                )
-
-                # Save
-                feature_engineering.save_features(
-                    enriched_df, paths['feat'], verbose=True
-                )
+                    # Engineer features
+                    enriched_df = engineer_features(df, window_sizes=[3, 5], verbose=True)
+                    # Save
+                    save_features(enriched_df, paths['feat'], verbose=True)
 
     elif args.cmd == "train":
-        print("yoo")
+        if args.verbose: print("Training...")
         all_results={}
-        for season in seasons:
-            all_results[season] = {}
+        if args.multiseason:
             for division in divisions:
-                paths = get_season_paths(season, division, dirs, args)
-                features_csv = paths['feat']
+                features_csv = dirs['feat'] / f"{division}_{seasons[0]}_to_{seasons[-1]}.csv" #should be generalised
                 print("\n" + "="*70)
-                print(f"TRAINING for {division} ({season})")
+                print(f"TRAINING for {division} ({seasons})")
                 print("="*70)
                 # Train baseline model
-                results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
-                all_results[season][division] = results['accuracy']
+                results = train_baseline_model( features_csv, feature_set=args.features_set, test_size=0.2, save_model=f"models/{seasons[0]}_to{seasons[-1]}_{division}_{args.features_set}_rf.pkl",args=args)
+                all_results[division] = results['accuracy']
 
-                print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
+                print(f"\nFinal accuracy ({args.features_set}): {results['accuracy']*100:.1f}%")
                 print(f"Features used: {len(results['feature_names'])}")
-                print("="*70)
-        print(divisions)
-        print_results_summary(all_results, divisions)
+                print("="*70)         
+        else:
+            for season in seasons:
+                all_results[season] = {}
+                for division in divisions:
+                    paths = get_season_paths(season, division, dirs, args)
+                    features_csv = paths['feat']
+                    print("\n" + "="*70)
+                    print(f"TRAINING for {division} ({season})")
+                    print("="*70)
+                    # Train baseline model
+                    results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
+                    all_results[season][division] = results['accuracy']
+
+                    print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
+                    print(f"Features used: {len(results['feature_names'])}")
+                    print("="*70)
+            print(divisions)
+            print_results_summary(all_results, divisions)
 
     elif args.cmd == "plot":
         for season in seasons:
@@ -107,6 +121,6 @@ def main():
                 fig.write_html(paths['fig'])
                 print(f"{season} / {division} saved to {paths['fig']}")
 
-    print('Code finished running')
+    if args.verbose: print('Code finished running')
 if __name__ == "__main__":
     main()
