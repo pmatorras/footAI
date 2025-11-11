@@ -5,7 +5,7 @@ from footai.cli import create_parser
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
 from footai.data.downloader import download_football_data
 from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
-from footai.core.config import get_season_paths, year_to_season_code, get_previous_season, FIG_DIR, RAW_DIR, PROCESSED_DIR, COUNTRIES
+from footai.core.config import get_season_paths, get_previous_season, FIG_DIR, COUNTRIES
 from footai.viz.plotter import plot_elo_rankings
 
 from footai.core.utils import parse_start_years
@@ -65,7 +65,6 @@ def main():
 
     elif args.cmd == 'features':
         if args.multiseason:
-            print("WIP")
             engineer_multiseason_features( seasons, divisions, dirs, window_sizes=[3, 5], args=args)
         else:
             for season in seasons:
@@ -80,7 +79,7 @@ def main():
                     save_features(enriched_df, paths['feat'], verbose=True)
 
     elif args.cmd == "train":
-        print("yoo")
+        if args.verbose: print("Training...")
         all_results={}
         if args.multiseason:
             for division in divisions:
@@ -89,10 +88,10 @@ def main():
                 print(f"TRAINING for {division} ({seasons})")
                 print("="*70)
                 # Train baseline model
-                results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{seasons[0]}_to{seasons[-1]}_{division}_baseline_rf.pkl",args=args)
+                results = train_baseline_model( features_csv, feature_set=args.features_set, test_size=0.2, save_model=f"models/{seasons[0]}_to{seasons[-1]}_{division}_{args.features_set}_rf.pkl",args=args)
                 all_results[division] = results['accuracy']
 
-                print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
+                print(f"\nFinal accuracy ({args.features_set}): {results['accuracy']*100:.1f}%")
                 print(f"Features used: {len(results['feature_names'])}")
                 print("="*70)         
         else:
@@ -122,6 +121,6 @@ def main():
                 fig.write_html(paths['fig'])
                 print(f"{season} / {division} saved to {paths['fig']}")
 
-    print('Code finished running')
+    if args.verbose: print('Code finished running')
 if __name__ == "__main__":
     main()

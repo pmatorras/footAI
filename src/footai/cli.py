@@ -35,6 +35,7 @@ def create_parser():
         sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--features-dir', type=str, default=FEATURES_DIR, help='Directory to save CSV files (default: football_data)')
+        sp.add_argument( '--features-set', type=str, default='baseline', help='Set of features to train on. default baseline', choices=["baseline", "extended", "draw_optimized", "all"])       
         sp.add_argument("-m", "--multiseason", action="store_true", help="Calculate over multiple seasons")
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
         sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)

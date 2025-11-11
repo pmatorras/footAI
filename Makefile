@@ -20,6 +20,7 @@ elo-SP:
 COUNTRY ?= SP
 DIVISION ?= SP1,SP2
 SEASON_START ?= 23,24
+FEATURES_SET ?= baseline
 download:
 	footai download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)
 promotion:
@@ -42,8 +43,19 @@ features:
 	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -v
 
 prepare_train: download promotion elo features
+
 train: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
+
+train_multi: 
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)
+
+
+train_options: 
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set draw_optimized -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set extended -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set baseline -m $(PYTHON_FLAGS)
+
 
 plot:
 	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 

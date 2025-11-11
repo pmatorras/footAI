@@ -64,11 +64,11 @@ def build_sanitize():
 
 def get_models(args):
     #Include defaults if args not defined 
-    n_estimators = getattr(args, 'tree_nestimators', 50) if args else 50
-    max_depth = getattr(args, 'tree_max_depth', 3) if args else 3
+    n_estimators = getattr(args, 'tree_nestimators', 100) if args else 50
+    max_depth = getattr(args, 'tree_max_depth', 10) if args else 10
     max_samples = getattr(args, 'tree_max_samples', None) if args else None
     max_features = getattr(args, 'tree_max_features', 'log2') if args else 'log2'
-    colsample = 0.4
+    colsample = getattr(args, 'tree_colsample', 0.8) if args else 0.8
     #getattr(args, 'tree_max_features', 0.4) if args else 0.4
 
     sanitize = build_sanitize()
@@ -101,7 +101,6 @@ def get_models(args):
                                            random_state=42,
                                            n_jobs=-1, 
                                            class_weight="balanced"
-
                                         ))
         ]),
         '''
@@ -213,11 +212,24 @@ def select_features(df, feature_set="baseline"):
         'home_shot_accuracy_L5', 'away_shot_accuracy_L5',
         'home_gd_L5', 'away_gd_L5'
     ]
-
+    draw_features = extended_features + ['draw_prob_consensus', 'draw_prob_dispersion', 'under_2_5_prob', 'under_2_5_zscore',
+                    'abs_elo_diff', 'elo_diff_sq', 'low_elo_diff', 'medium_elo_diff', 'abs_odds_prob_diff',
+                    'abs_ahh', 'ahh_zero', 'ahh_flat', 'min_shots_l5', 'min_shot_acc_l5', 'min_goals_scored_l5',
+                    #'home_draw_rate_l10', 'away_draw_rate_l10', #Currently broken
+                    'league_draw_bias'] 
+    top_draw_features = extended_features + [
+        'draw_prob_consensus', 'abs_odds_prob_diff', 'under_2_5_prob', 
+        'draw_prob_dispersion', 'abs_elo_diff', 'under_2_5_zscore', 'elo_diff_sq',
+        'min_shot_acc_l5', 'min_shots_l5', 'abs_ahh'  
+    ]
     if feature_set == "baseline":
         return [f for f in baseline_features if f in df.columns]
     elif feature_set == "extended":
         return [f for f in extended_features if f in df.columns]
+    elif feature_set == "draw_features":
+        return [f for f in draw_features if f in df.columns]
+    elif feature_set == "draw_optimized":
+        return [f for f in top_draw_features if f in df.columns]
     elif feature_set == "all":
         # All numeric columns except metadata and target
         exclude = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 

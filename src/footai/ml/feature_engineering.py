@@ -155,6 +155,138 @@ def add_odds_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def add_draw_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add draw-optimized features: odds consensus/dispersion, totals probs,
+    parity indicators, low-event composites, and rolling draw rates.
+    
+    Args:
+        df: DataFrame with odds and L5 features (post-engineer_features).
+    
+    Returns:
+        DataFrame with added draw features.
+    """
+    # Odds-derived: Consensus draw prob and dispersion (across books; assumes odds are present)
+    draw_odds_cols = ['B365D', 'BWD', 'WH D', 'IWD', 'PSD']  # Adjust if exact col names vary; use available D odds
+    available_draw_odds = [col for col in draw_odds_cols if col in df.columns]
+    if available_draw_odds:
+        df['draw_prob_consensus'] = df[available_draw_odds].apply(lambda x: np.mean(1 / x), axis=1)
+        df['draw_prob_dispersion'] = df[available_draw_odds].apply(lambda x: np.std(1 / x), axis=1)
+    else:
+        df['draw_prob_consensus'] = 1 / df['B365D'] if 'B365D' in df.columns else np.nan
+        df['draw_prob_dispersion'] = np.nan
+    
+    # Under 2.5 prob (implied from totals odds; use B365 as primary)
+    if 'B365>2.5' in df.columns and 'B365<2.5' in df.columns:
+        df['under_2_5_prob'] = 1 / (1 + df['B365>2.5'] / df['B365<2.5'])
+        under_mean = df['under_2_5_prob'].mean()
+        under_std = df['under_2_5_prob'].std()
+        df['under_2_5_zscore'] = (df['under_2_5_prob'] - under_mean) / under_std if under_std > 0 else 0
+    else:
+        df['under_2_5_prob'] = np.nan
+        df['under_2_5_zscore'] = np.nan
+    
+    # Parity: Elo and odds closeness (using existing elo_diff and odds norms)
+    df['abs_elo_diff'] = np.abs(df['elo_diff'])  # Assumes elo_diff already added
+    df['elo_diff_sq'] = df['elo_diff'] ** 2
+    df['low_elo_diff'] = (np.abs(df['elo_diff']) < 25).astype(int)
+    df['medium_elo_diff'] = ((np.abs(df['elo_diff']) >= 25) & (np.abs(df['elo_diff']) < 50)).astype(int)
+    df['abs_odds_prob_diff'] = np.abs(df['odds_home_prob_norm'] - df['odds_away_prob_norm'])
+    
+    # Asian handicap parity (using AHh if present)
+    if 'AHh' in df.columns:
+        df['abs_ahh'] = np.abs(df['AHh'])
+        df['ahh_zero'] = (np.abs(df['AHh']) < 0.25).astype(int)
+        df['ahh_flat'] = (df['AHh'] == 0).astype(int)
+    else:
+        df['abs_ahh'] = np.nan
+        df['ahh_zero'] = np.nan
+        df['ahh_flat'] = np.nan
+    
+    # Low-scoring composites (min of L5; assumes L5 cols exist from engineer_features)
+    if all(col in df.columns for col in ['home_shots_L5', 'away_shots_L5']):
+        df['min_shots_l5'] = np.minimum(df['home_shots_L5'], df['away_shots_L5'])
+    else:
+        df['min_shots_l5'] = np.nan
+    if all(col in df.columns for col in ['home_shot_accuracy_L5', 'away_shot_accuracy_L5']):
+        df['min_shot_acc_l5'] = np.minimum(df['home_shot_accuracy_L5'], df['away_shot_accuracy_L5'])
+    else:
+        df['min_shot_acc_l5'] = np.nan
+    if all(col in df.columns for col in ['home_goals_scored_L5', 'away_goals_scored_L5']):
+        df['min_goals_scored_l5'] = np.minimum(df['home_goals_scored_L5'], df['away_goals_scored_L5'])
+    else:
+        df['min_goals_scored_l5'] = np.nan
+    
+    # Team/League draw priors (rolling draw rate L10; compute post-sort for temporality)
+    # Add row_id to track original positions
+    df_sorted = df.sort_values('Date').copy()
+    df_sorted['row_id'] = df.index  # Matches original df index for merging back
+
+    # Map FTR to numeric: 1 if 'D', 0 otherwise (binary for draw rate); check if FTR exists/is string
+    if 'FTR' not in df_sorted.columns:
+        print("Warning: 'FTR' column missing; skipping draw rates.")
+        df_sorted['FTR_numeric'] = 0.0  # Fallback NaN/0
+    else:
+        df_sorted['FTR_numeric'] = (df_sorted['FTR'] == 'D').astype(float)
+
+    for team_type in ['HomeTeam', 'AwayTeam']:
+        team_col = team_type
+        draw_rate_col = f'{team_type.lower()}_draw_rate_l10'
+        
+        # Compute rolling mean per team (direct on numeric, preserves sorted order)
+        if team_col in df_sorted.columns:
+            df_sorted[draw_rate_col] = (
+                df_sorted.groupby(team_col)['FTR_numeric']
+                .transform(lambda x: x.rolling(window=10, min_periods=3).mean())
+            )
+            # Check if populated (has non-NaN)
+            if df_sorted[draw_rate_col].isna().all():
+                df_sorted[draw_rate_col] = np.nan  # Ensure float dtype
+        else:
+            df_sorted[draw_rate_col] = np.nan
+            print(f"Warning: '{team_col}' missing; draw rate set to NaN.")
+
+    # Drop temp numeric col
+    df_sorted = df_sorted.drop('FTR_numeric', axis=1, errors='ignore')
+
+    # League draw bias (global constant)
+    if 'FTR' in df.columns:
+        df['league_draw_bias'] = float((df['FTR'] == 'D').mean())
+    else:
+        df['league_draw_bias'] = np.nan
+        print("Warning: No 'FTR'; league_draw_bias set to NaN.")
+
+    # Conditional shifting for no leakage (in sorted order: past-only)
+    shifted_cols = []
+    for col in ['home_draw_rate_l10', 'away_draw_rate_l10']:
+        if col in df_sorted.columns and not df_sorted[col].isna().all():
+            df_sorted[f'{col}_shifted'] = df_sorted[col].shift(1)
+            shifted_cols.append(f'{col}_shifted')
+        else:
+            df_sorted[f'{col}_shifted'] = np.nan  # Explicit NaN if skipped
+            shifted_cols.append(f'{col}_shifted')
+
+    # Safe merge: dynamically select available shifted cols + row_id
+    available_merge_cols = [c for c in shifted_cols if c in df_sorted.columns]
+    if available_merge_cols:
+        df_sorted_merge = df_sorted[['row_id'] + available_merge_cols].copy()
+        # Rename shifted back to base names
+        rename_dict = {f'{base}_shifted': base for base in ['home_draw_rate_l10', 'away_draw_rate_l10'] if f'{base}_shifted' in available_merge_cols}
+        df_sorted_merge = df_sorted_merge.rename(columns=rename_dict)
+        # Merge back to original df
+        df = df.merge(df_sorted_merge, left_index=True, right_on='row_id', how='left', suffixes=('', '_dropped'))
+        # Drop any duplicate/ temp cols (e.g., if suffixes added)
+        df = df.drop([col for col in df.columns if col.endswith('_dropped')], axis=1, errors='ignore')
+    else:
+        print("Warning: No shifted cols available; draw rates set to NaN in df.")
+
+    # Clean up temps from df_sorted (not returned)
+    df_sorted = df_sorted.drop(['row_id'] + [f'{c}_shifted' for c in ['home_draw_rate_l10', 'away_draw_rate_l10']], axis=1, errors='ignore')
+
+    return df
+
+
+
 
 def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], team_initial_history=None, verbose: bool = False) -> pd.DataFrame:
     """
@@ -230,6 +362,10 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], team_i
         print("Adding betting market features...")
     enriched_df = add_odds_features(enriched_df)
 
+    # Add draw-optimized features
+    if verbose:
+        print("Adding draw-optimized features...")
+    enriched_df = add_draw_features(enriched_df)
     if verbose:
         print(f"Feature engineering complete!")
         print(f"Total columns: {len(enriched_df.columns)}")

@@ -6,7 +6,6 @@ class ValidateDivisionAction(argparse.Action):
     """Validate that provided divisions exist for the selected country."""
     def __call__(self, parser, namespace, values, option_string=None):
         country = namespace.country
-        print(COUNTRIES.keys())
         divisions = [d.strip() for d in values.split(',')]
         
         for div in divisions:
