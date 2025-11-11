@@ -13,6 +13,8 @@ Supports multi-season analysis with configurable decay factors.
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Model Configuration](#model-configuration)
+- [Pipeline](#pipeline)
 - [Project Structure](#project-structure)
 - [Files & Outputs](#files-and-outputs)
 - [Supported Countries](#supported-countries)
@@ -26,10 +28,10 @@ This project takes the fetches football data from the main European leages, from
 - Initial rating: 1500
 - K-factor: 32 (volatility per match)
 - Supports both single matches and season progression
-- Carries elo seasons between seasons (with a `decay-factor` set to 0.95 by default)
-- Assigns to newly promoted teams the Elo ranking from last season's demoted teams.
+- Carries Elo across seasons (with a `decay-factor` set to 0.95 by default)
+- Assigns newly promoted teams the Elo ranking from last season's demoted teams.
 
-It also produces plots for each given season, and an interactive dashboard
+It also produces plots for each given season and an interactive dashboard. The ML component trains RandomForest models on engineered features (Elo, odds, L5 form, draw-specific signals) for outcome prediction (H/D/A), with v1.0 locking the `draw_optimized` set for ~55% accuracy and ~33% draw recall on SP1 data (2122-2425 seasons). [file:321]
 
 ## Requirements
 
@@ -54,8 +56,8 @@ footai promotion-relegation --country SP --season-start 23,24
 # Calculate Elo rankings (multiple seasons with decay factor) and transfering the elo between promoted and relegated teams
 footai elo --country SP --div SP1 --season-start 22,23,24,25 --multiseason --elo-transfer --decay-factor 0.95
 
-# Train a ML model (WIP)
-footai train --country SP --div SP1,SP2 --season-start 23,24 --elo-transfer  -m 
+# Train ML model with draw_optimized features (v1.0 default)
+footai train --country SP --div SP1 --season-start 23,24 --elo-transfer --features-set draw_optimized -m 
 
 # Plot the results
 footai plot --country SP --div SP1 --season-start 24 --multiseason --elo-transfer
@@ -95,13 +97,13 @@ footai promotion-relegation --country SP --season-start 23,24
 
 **elo** - Calculate Elo rankings for teams
 ```bash
-footai elo --country SP --season-start 24
-footai elo --season-start 24 -m --decay-factor 0.95  # Multi-season with decay
+footai elo --country SP --season-start 23,24
+footai elo --season-start 23,24 -m --decay-factor 0.95  # Multi-season with decay
 ```
 
-**train** - Train a ML model (WIP, currently only a random forest, and trained per season)
+**train** - Train ML models (RandomForest default; supports multi-season, Elo transfer)
 ```bash
-footai train --country SP --div SP1,SP2 --season-start 24 --elo-transfer  -m 
+footai train --country SP --div SP1,SP2 --season-start 23,24 --elo-transfer  -m 
 
 ```
 
@@ -126,7 +128,7 @@ All subcommands (`download`, `elo`, `plot`) support these options:
 | `--decay-factor` | Elo decay factor 0-1 (default: 0.95) | `--decay-factor 0.9` |
 | `--raw-dir` | Directory for raw data (default: `football_data`) | `--raw-dir my_data` |
 | `--processed-dir` | Directory for processed data | `--processed-dir my_output` |
-
+| `--features-set` | ML features (`baseline/extended/draw_optimized`; default: `draw_optimized`) | `--features-set baseline` |
 ### Examples
 
 ```bash
@@ -141,18 +143,20 @@ footai plot --country SP --season-start 22,23,24,25 -m --decay-factor 0.95
 
 # Track team movements with verbose output
 footai promotion-relegation --country SP --season-start 23,24 -v --elo-transfer
+
+#Train multi-season model on SP1 with draw_optimized (v1.0)
+footai train --country SP --div SP1 --season-start 22,23,24 --elo-transfer --features-set draw_optimized -m -v
 ```
 
-## Roadmap
+## Model Configuration
 
-**Current Features (v0.3)**
-- ✅ Elo calculations
-- ✅ Multi-season analysis
-- ✅ ML predictions
-- ✅ Feature engineering
-**In Development (v0.4)**
-- 🔄 Multi season ML predictions
-- 🔄 Feature engineering tweaking
+The ML pipeline uses a RandomForestClassifier (`scikit-learn`) with balanced class weights for outcome prediction (H/D/A). Key v1.0 decisions (Nov 11, 2025; see [docs/feature_configuration_decision.md](docs/feature_configuration_decision.md)):
+
+- **Default Features**: `draw_optimized` (~28 features: baseline Elo/odds/form + extended L5 stats + skimmed draw signals like consensus probs, under_2_5_zscore, AH diffs). Improves draw recall to ~33% vs. ~25% baseline, at 55% overall acc.
+- **Performance (SP1 2122-2425, ~760 matches)**: Accuracy of 55.0% (test), draw recall 0.333, F1_draw ~0.328. (~3.1% test-CV gap).
+- **Training**: 3-fold temporal CV; `n_estimators=100`, `max_depth=10`. 
+- **CLI**: Use `--features-set draw_optimized` for v1.0; alternatives: `baseline` (12 features, lean), `extended` (~18 features).
+
 
 
 
@@ -161,8 +165,9 @@ footai promotion-relegation --country SP --season-start 23,24 -v --elo-transfer
 
 1. **Download** – Fetch match data from [football-data.co.uk](https://football-data.co.uk)
 2. **Calculate** – Compute Elo ratings for all teams per match
-3. **Plot** – Visualize team progression as interactive charts
-4. **Dash** – Interactive dashboard
+3. **Train** – Engineer features and train ML model for predictions
+4. **Plot** – Visualize team progression as interactive charts
+5. **Dash** – Interactive dashboard (WIP)
 
 
 ## Project Structure
@@ -226,7 +231,21 @@ figures/                                            # interactive plots
 | DE | Germany (Bundesliga 1/2) |
 | FR | France (Ligue 1/2) |
 
+## Roadmap
 
+**Current Features (v0.3)**
+- ✅ Elo calculations
+- ✅ Multi-season analysis
+- ✅ Feature engineering (`baseline`/`extended`/`draw_optimized`)
+- ✅ ML predictions (RandomForest with `draw_optimized` config)
+
+**In Development (v0.4)**
+
+- 🔄 Hyperparameter tuning (depth, estimators; GB/XGB comparison)
+- 🔄 Multi-league model optimisation (SP1 optimised for now)
+- 🔄 SHAP explainability and probability calibration
+- 🔄 Live API predictions and dashboard integration
+- 🔄 Ethical audits and betting disclaimers
 
 
 ## License
