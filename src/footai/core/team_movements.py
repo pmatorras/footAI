@@ -1,6 +1,7 @@
 
 import pandas as pd
 from footai.core.config import get_season_paths, COUNTRIES
+import os
 
 def identify_promotions_relegations_for_season(season, country, prev_season, dirs, args):
     """
@@ -22,6 +23,20 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
     paths_prev_tier1 = get_season_paths(prev_season, tier1_div, dirs, args)
     paths_prev_tier2 = get_season_paths(prev_season, tier2_div, dirs, args)
     
+    # Check if previous season files exist
+    if not os.path.exists(paths_prev_tier1['raw']):
+        print(f" WARNING: Previous season data not found: {paths_prev_tier1['raw']}")
+        print(f"   Skipping promotion-relegation for season {season}")
+        print(f"   To identify promotions/relegations, download season {prev_season} first:")
+        print(f"   footai download --country {country} --div {tier1_div},{tier2_div} --season-start {prev_season}")
+        return None
+    
+    if not os.path.exists(paths_prev_tier2['raw']):
+        print(f" WARNING: Previous season data not found: {paths_prev_tier2['raw']}")
+        print(f"   Skipping promotion-relegation for season {season}")
+        return None
+    
+    # Load previous season data if exists
     df_prev_tier1 = pd.read_csv(paths_prev_tier1['raw'])
     df_prev_tier2 = pd.read_csv(paths_prev_tier2['raw'])
     
