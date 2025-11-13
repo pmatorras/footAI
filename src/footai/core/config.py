@@ -63,7 +63,7 @@ def get_season_paths(season, division, dirs, args):
     Returns a dict with keys: 'season', 'raw', 'elo', 'fig'
     """
     
-    if args.multiseason:
+    if args.multi_season:
         suffix = '_transfer' if args.elo_transfer else '_multi'  
     else:
         suffix = ''

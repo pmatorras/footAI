@@ -11,7 +11,7 @@ from footai.viz.plotter import plot_elo_rankings
 from footai.core.utils import parse_start_years
 from footai.ml.training import train_baseline_model
 from footai.ml.evaluation import print_results_summary
-from footai.ml.feature_engineering import engineer_features, save_features
+from footai.ml.feature_engineering import engineer_features, save_features, combine_divisions_features
 
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
@@ -31,7 +31,7 @@ def main():
     
     parser = create_parser()
     args = parser.parse_args()
-    if args.elo_transfer: args.multiseason=True
+    if args.elo_transfer or args.multi_division: args.multi_season=True
     if args.verbose: print("Running the code with args:", args)
 
     divisions = args.division
@@ -56,7 +56,7 @@ def main():
             print(f"Saved promotion/relegation data for {prev_season} -> {season}") 
              
     elif args.cmd == 'elo':
-        if args.multiseason:
+        if args.multi_season:
             print("calculating multi season")
             calculate_elo_multiseason(seasons, divisions, args.country, dirs, decay_factor=args.decay_factor, initial_elo=1500, k_factor=32, args=args)
         else:
@@ -69,7 +69,7 @@ def main():
                     print(f"{season} / {division} saved to {paths['proc']}")
 
     elif args.cmd == 'features':
-        if args.multiseason:
+        if args.multi_season:
             for division in divisions:
                 elo_dir = get_multiseason_path(dirs['proc'], division, seasons[0], seasons[-1], args)
                 df = pd.read_csv(elo_dir)
@@ -92,7 +92,11 @@ def main():
     elif args.cmd == "train":
         if args.verbose: print("Training...")
         all_results={}
-        if args.multiseason:
+        if args.multi_division:            
+            combined_features = combine_divisions_features(args.country, divisions, seasons, dirs, args)
+            
+            results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2)            
+        elif args.multi_season:
             for division in divisions:
                 features_csv = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)
                 print("\n" + "="*70)

@@ -38,21 +38,25 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
             - feature_names: List of features used
             - accuracy: Test accuracy
     """
+    verbose = getattr(args, 'verbose', False)  # Default to False if args is None
+
     # Load features
-    if args.verbose:
+    if verbose:
         print(f"Loading features from: {features_csv}")
 
     df = pd.read_csv(features_csv)
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values('Date')
 
-    if args.verbose:
+    if verbose:
         print(f"Loaded {len(df)} matches")
 
     # Select features
     feature_cols = select_features(df, feature_set)
-
-    if args.verbose:
+    if 'is_tier1' in df.columns:
+        print(f"  Adding division features: is_tier1, division_tier")
+        feature_cols = feature_cols + ['is_tier1', 'division_tier']
+    if verbose:
         print(f"\nUsing {len(feature_cols)} features ({feature_set} set)")
 
 
@@ -68,7 +72,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         X, y, test_size=test_size, shuffle=False  # No shuffle for temporal order
     )
 
-    if args.verbose:
+    if verbose:
         print(f"\nTrain: {len(X_train)} matches")
         print(f"Test:  {len(X_test)} matches")
         print(f"\nTarget distribution (full dataset):")
@@ -80,7 +84,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     models = get_models(args)
     model = models['rf'] #baseline for first attemps
 
-    if args.verbose:
+    if verbose:
         print("\nTraining Random Forest...")
 
 
@@ -126,9 +130,36 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     y_pred_proba = model.predict_proba(X_test)
 
     # Evaluate
+
+    # multiseason tests
+    if 'Division' in df.columns:
+        print("\nPer-division performance:")
+        
+        # Get the test set portion of df with predictions
+        df_test = df.iloc[-len(y_test):].copy()  # Get last N rows corresponding to test set
+        df_test['Prediction'] = y_pred
+        
+        for division in sorted(df_test['Division'].unique()):
+            div_data = df_test[df_test['Division'] == division]
+            
+            # Calculate accuracy
+            div_acc = (div_data['Prediction'] == div_data['FTR']).mean()
+            
+            # Calculate draw recall
+            div_draws = div_data['FTR'] == 'D'
+            if div_draws.sum() > 0:
+                div_draw_recall = (div_data.loc[div_draws, 'Prediction'] == 'D').sum() / div_draws.sum()
+            else:
+                div_draw_recall = 0.0
+            
+            n_matches = len(div_data)
+            print(f"  {division}: {div_acc:.1%} acc, {div_draw_recall:.1%} draw recall ({n_matches} matches)")
+
+
+
     accuracy = accuracy_score(y_test, y_pred)
 
-    if args.verbose:
+    if verbose:
         print(f"\n{'='*70}")
         print("BASELINE MODEL RESULTS")
         print('='*70)
@@ -193,7 +224,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         save_path = Path(save_model)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump(model, save_path)
-        if args.verbose:
+        if verbose:
             print(f"\nModel saved to: {save_path}")
 
     return {
