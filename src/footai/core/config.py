@@ -80,6 +80,10 @@ def get_season_paths(season, division, dirs, args):
         'fig' : fig_path
     }
 
+def get_multiseason_path(dir, division, season_start, season_end, args=None):
+    suffix = '_transfer' if args.elo_transfer else '_multi'
+    return dir / f'{division}_{season_start}_to_{season_end}{suffix}.csv'
+
 def get_data_loc(season, division, country, file_dir = None, file_type='', suffix='', verbose=False):
     """
     Generate file path for data storage.

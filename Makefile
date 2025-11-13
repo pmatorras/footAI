@@ -24,20 +24,23 @@ FEATURES_SET ?= baseline
 download:
 	footai download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)
 promotion:
-	footai promotion-relegation --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
+	footai promotion-relegation --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m $(PYTHON_FLAGS)
 
 plot_multi:
-	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
+	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
 elo_multi: 
-	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m
+	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
 
 test_multi: elo_multi plot_multi
 
 elo:
-	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  
+	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(PYTHON_FLAGS)
 
 features_multi:
-	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -v -m
+	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -v -m
+
+features_nomulti:
+	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -v 
 
 features:
 	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -v
@@ -48,7 +51,7 @@ train:
 	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
 
 train_multi: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)  --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)
 
 
 train_options: 
@@ -56,6 +59,10 @@ train_options:
 	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set extended -m $(PYTHON_FLAGS)
 	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set baseline -m $(PYTHON_FLAGS)
 
+train_multi_options: 
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --multiseason  --features-set draw_optimized -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --multiseason  --features-set extended -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --multiseason  --features-set baseline -m $(PYTHON_FLAGS)
 
 plot:
 	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 

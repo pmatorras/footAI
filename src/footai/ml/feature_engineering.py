@@ -37,7 +37,7 @@ def team_matches_rows(df, team_name):
             })
     return team_matches
 
-def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: int, cache: Dict, initial_history: Dict = None) -> Dict:
+def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: int, cache: Dict) -> Dict:
     """
     Calculate rolling features for a specific team.
 
@@ -56,8 +56,6 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
 
     # Extract team's matches
     team_matches = team_matches_rows(df, team_name=team_name)
-    if initial_history and team_name in initial_history:
-        team_matches = initial_history[team_name] + team_matches
     team_df = pd.DataFrame(team_matches).sort_values('date').reset_index(drop=True)
 
     # Calculate rolling features
@@ -289,7 +287,7 @@ def add_draw_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 
-def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], team_initial_history=None, verbose: bool = False) -> pd.DataFrame:
+def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], verbose: bool = False) -> pd.DataFrame:
     """
     Main feature engineering pipeline.
 
@@ -341,8 +339,8 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], team_i
             match_date = row['Date']
 
             # Get features for both teams
-            home_features = calculate_team_rolling_features(enriched_df, home_team, window, team_cache, initial_history=team_initial_history)
-            away_features = calculate_team_rolling_features(enriched_df, away_team, window, team_cache, initial_history=team_initial_history)
+            home_features = calculate_team_rolling_features(enriched_df, home_team, window, team_cache)
+            away_features = calculate_team_rolling_features(enriched_df, away_team, window, team_cache)
 
             # Get features up to this match
             if match_date in home_features:
@@ -426,72 +424,3 @@ def save_features(df: pd.DataFrame, output_path: str, verbose: bool = False):
 
 
 
-def extract_final_match_histories(df: pd.DataFrame, window_sizes: List[int]) -> Dict:
-    """
-    Extract the last N matches for each team to seed next season's rolling features.
-    
-    Returns:
-        Dict[team_name, List[match_dicts]] with last max(window_sizes) matches per team
-    """
-    max_window = max(window_sizes)
-    team_histories = {}
-    
-    for team in df['HomeTeam'].unique():
-        # Get all matches for this team
-        team_matches = team_matches_rows(df, team_name=team)
-        team_histories[team] = team_matches[-max_window:] if len(team_matches) >= max_window else team_matches
-    
-    return team_histories
-
-def engineer_multiseason_features( seasons: List[str], divisions: List[str], 
-    dirs: Dict, window_sizes: List[int] = [3, 5], args = None) -> None:
-    """
-    Engineer features across multiple seasons with temporal continuity.
-    
-    Args:
-        seasons: List of season codes
-        divisions: List of division names
-        carry_stats: Whether to carry team rolling stats between seasons
-        ...
-    """
-    
-    """
-    Engineer features across multiple seasons and save one combined file per division.
-    
-    This processes seasons sequentially with rolling state carry-over between them,
-    then concatenates all seasons into a single training-ready DataFrame.
-    """
-    from footai.core.config import get_season_paths
-    import pandas as pd
-    
-    for division in divisions:
-        all_season_dfs = []
-        team_match_history = {}  # carry match history between seasons
-        
-        for season_idx, season in enumerate(seasons):
-            paths = get_season_paths(season, division, dirs, args)
-            df = pd.read_csv(paths['proc'])
-            
-            if args.verbose:
-                print(f"Processing {season}/{division}...")
-            
-            # Engineer features (with history from previous season if available)
-            enriched_df = engineer_features( df, window_sizes=window_sizes, team_initial_history=team_match_history if season_idx > 0 else None,verbose=args.verbose)
-            
-            # Add season identifier
-            enriched_df['Season'] = season
-            all_season_dfs.append(enriched_df)
-            
-            # Extract final match history for each team to carry into next season
-            team_match_history = extract_final_match_histories( enriched_df, window_sizes=window_sizes)
-        
-        # Concatenate all seasons
-        combined_df = pd.concat(all_season_dfs, ignore_index=True)
-        
-        # Save single multi-season file
-        output_path = dirs['feat'] / f"{division}_{seasons[0]}_to_{seasons[-1]}.csv"
-        combined_df.to_csv(output_path, index=False)
-        
-        if args.verbose:
-            print(f"Saved {len(seasons)} seasons to {output_path}")
-            print(f"Total matches: {len(combined_df)}")
