@@ -225,63 +225,64 @@ def add_draw_features(df: pd.DataFrame) -> pd.DataFrame:
     # Map FTR to numeric: 1 if 'D', 0 otherwise (binary for draw rate); check if FTR exists/is string
     if 'FTR' not in df_sorted.columns:
         print("Warning: 'FTR' column missing; skipping draw rates.")
-        df_sorted['FTR_numeric'] = 0.0  # Fallback NaN/0
+        df['home_draw_rate_l10'] = np.nan
+        df['away_draw_rate_l10'] = np.nan
     else:
-        df_sorted['FTR_numeric'] = (df_sorted['FTR'] == 'D').astype(float)
-
-    for team_type in ['HomeTeam', 'AwayTeam']:
-        team_col = team_type
-        draw_rate_col = f'{team_type.lower()}_draw_rate_l10'
+        # Binary: 1 if draw, 0 otherwise
+        is_draw = (df_sorted['FTR'] == 'D').astype(float)
         
-        # Compute rolling mean per team (direct on numeric, preserves sorted order)
-        if team_col in df_sorted.columns:
-            df_sorted[draw_rate_col] = (
-                df_sorted.groupby(team_col)['FTR_numeric']
-                .transform(lambda x: x.rolling(window=10, min_periods=3).mean())
-            )
-            # Check if populated (has non-NaN)
-            if df_sorted[draw_rate_col].isna().all():
-                df_sorted[draw_rate_col] = np.nan  # Ensure float dtype
-        else:
-            df_sorted[draw_rate_col] = np.nan
-            print(f"Warning: '{team_col}' missing; draw rate set to NaN.")
+        # Calculate draw rates for each team type
+        df_sorted['home_draw_rate_l10'] = np.nan
+        df_sorted['away_draw_rate_l10'] = np.nan
 
-    # Drop temp numeric col
-    df_sorted = df_sorted.drop('FTR_numeric', axis=1, errors='ignore')
-
+ 
+        # Process home teams
+        if 'HomeTeam' in df_sorted.columns:
+            for team in df_sorted['HomeTeam'].unique():
+                team_mask = df_sorted['HomeTeam'] == team
+                team_indices = df_sorted[team_mask].index
+                
+                # Calculate rolling mean (past 10 matches only - excluding current)
+                team_draws = is_draw[team_mask]
+                rolling_rate = team_draws.shift(1).rolling(window=10, min_periods=3).mean()
+                
+                # Assign back to dataframe
+                df_sorted.loc[team_indices, 'home_draw_rate_l10'] = rolling_rate.values
+        
+        # Process away teams
+        if 'AwayTeam' in df_sorted.columns:
+            for team in df_sorted['AwayTeam'].unique():
+                team_mask = df_sorted['AwayTeam'] == team
+                team_indices = df_sorted[team_mask].index
+                
+                # Calculate rolling mean (past 10 matches only - excluding current)
+                team_draws = is_draw[team_mask]
+                rolling_rate = team_draws.shift(1).rolling(window=10, min_periods=3).mean()
+                
+                # Assign back to dataframe
+                df_sorted.loc[team_indices, 'away_draw_rate_l10'] = rolling_rate.values
+        
+        # Merge back to original df (preserve original order)
+        df = df.merge(
+            df_sorted[['Date', 'HomeTeam', 'AwayTeam', 'home_draw_rate_l10', 'away_draw_rate_l10']],
+            on=['Date', 'HomeTeam', 'AwayTeam'],
+            how='left',
+            suffixes=('', '_new')
+        )
+        
+        # Use the new columns (drop old if exists)
+        if 'home_draw_rate_l10_new' in df.columns:
+            df['home_draw_rate_l10'] = df['home_draw_rate_l10_new']
+            df = df.drop('home_draw_rate_l10_new', axis=1)
+        if 'away_draw_rate_l10_new' in df.columns:
+            df['away_draw_rate_l10'] = df['away_draw_rate_l10_new']
+            df = df.drop('away_draw_rate_l10_new', axis=1)
+    
     # League draw bias (global constant)
     if 'FTR' in df.columns:
         df['league_draw_bias'] = float((df['FTR'] == 'D').mean())
     else:
         df['league_draw_bias'] = np.nan
-        print("Warning: No 'FTR'; league_draw_bias set to NaN.")
-
-    # Conditional shifting for no leakage (in sorted order: past-only)
-    shifted_cols = []
-    for col in ['home_draw_rate_l10', 'away_draw_rate_l10']:
-        if col in df_sorted.columns and not df_sorted[col].isna().all():
-            df_sorted[f'{col}_shifted'] = df_sorted[col].shift(1)
-            shifted_cols.append(f'{col}_shifted')
-        else:
-            df_sorted[f'{col}_shifted'] = np.nan  # Explicit NaN if skipped
-            shifted_cols.append(f'{col}_shifted')
-
-    # Safe merge: dynamically select available shifted cols + row_id
-    available_merge_cols = [c for c in shifted_cols if c in df_sorted.columns]
-    if available_merge_cols:
-        df_sorted_merge = df_sorted[['row_id'] + available_merge_cols].copy()
-        # Rename shifted back to base names
-        rename_dict = {f'{base}_shifted': base for base in ['home_draw_rate_l10', 'away_draw_rate_l10'] if f'{base}_shifted' in available_merge_cols}
-        df_sorted_merge = df_sorted_merge.rename(columns=rename_dict)
-        # Merge back to original df
-        df = df.merge(df_sorted_merge, left_index=True, right_on='row_id', how='left', suffixes=('', '_dropped'))
-        # Drop any duplicate/ temp cols (e.g., if suffixes added)
-        df = df.drop([col for col in df.columns if col.endswith('_dropped')], axis=1, errors='ignore')
-    else:
-        print("Warning: No shifted cols available; draw rates set to NaN in df.")
-
-    # Clean up temps from df_sorted (not returned)
-    df_sorted = df_sorted.drop(['row_id'] + [f'{c}_shifted' for c in ['home_draw_rate_l10', 'away_draw_rate_l10']], axis=1, errors='ignore')
 
     return df
 
