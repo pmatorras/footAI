@@ -1,7 +1,7 @@
 import pandas as pd
 from collections import defaultdict
 from footai.core.team_movements import load_promotion_relegation
-from footai.core.config import get_season_paths
+from footai.core.config import get_season_paths, get_multiseason_path
 
 def expected_score(elo_a, elo_b):
     """
@@ -104,6 +104,9 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
     
     regression_point = initial_elo
     team_elos_carry = {div: {} for div in divisions}  # Track per division
+
+    all_season_dfs = {div: [] for div in divisions}
+
     print("ELO TRANSFER MODE:", args.elo_transfer)
     tier1_final_elos = None
     tier2_final_elos = None
@@ -127,10 +130,6 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                         #define last season elos, pahts, and dfs
                         last_eason_promoted_elos = [tier2_final_elos.get(team, initial_elo) for team in promoted]
                         last_eason_relegated_elos = [tier1_final_elos.get(team, initial_elo) for team in relegated]
-                        paths_top = get_season_paths(season, divisions[0], dirs, args)
-                        #df_top = pd.read_csv(paths_top['proc'])
-                        paths_lower = get_season_paths(season, divisions[1], dirs, args)
-                        #df_lower = pd.read_csv(paths_lower['proc'])
                         
                         # Promoted teams to top division get ELOs from relegated teams in lower division
                         for promoted_team, rel_elo in zip(promoted, last_eason_relegated_elos):
@@ -141,14 +140,15 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                             team_elos_carry[divisions[1]][relegated_team] = promo_elo
                             print(f"{divisions[1]}({season}): Transferred {promo_elo:.1f} to {relegated_team}")
 
+
         for division in divisions:
             paths = get_season_paths(season, division, dirs, args)
             
             df = pd.read_csv(paths['raw'])
             df_with_elos = calculate_elo_season(df, initial_elo=initial_elo,k_factor=k_factor, team_starting_elos=team_elos_carry[division])
-            df_with_elos.to_csv(paths['proc'], index=False)
-            print(f"{season} / {division}, saved to {paths['proc']}")
-            
+            df_with_elos['Season'] = season
+            all_season_dfs[division].append(df_with_elos)
+
             # Extract and decay
             final_elos = {
                 team: df_with_elos[df_with_elos['HomeTeam'] == team].iloc[-1]['HomeElo']
@@ -162,8 +162,22 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
                 tier1_final_elos_this_season = final_elos.copy()
             else:
                 tier2_final_elos_this_season = final_elos.copy()
-
-       
+                
         # Update previous season final elos for next iteration
         tier1_final_elos = tier1_final_elos_this_season
         tier2_final_elos = tier2_final_elos_this_season
+
+
+    for division in divisions:
+        if all_season_dfs[division]:
+            combined_df = pd.concat(all_season_dfs[division], ignore_index=True)
+            combined_df = combined_df.sort_values('Date').reset_index(drop=True)
+            
+            # Save with multi-season naming
+            multi_season_file = get_multiseason_path(dirs['proc'], division, seasons[0],seasons[-1], args)
+            combined_df.to_csv(multi_season_file, index=False)
+            
+            print(f"\nCombined multi-season file: {multi_season_file}")
+            print(f"  Total matches: {len(combined_df)}")
+            print(f"  Seasons: {seasons[0]} to {seasons[-1]}")
+       

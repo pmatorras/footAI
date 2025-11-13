@@ -5,13 +5,13 @@ from footai.cli import create_parser
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
 from footai.data.downloader import download_football_data
 from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
-from footai.core.config import get_season_paths, get_previous_season, FIG_DIR, COUNTRIES
+from footai.core.config import get_season_paths, get_multiseason_path, get_previous_season, FIG_DIR, COUNTRIES
 from footai.viz.plotter import plot_elo_rankings
 
 from footai.core.utils import parse_start_years
 from footai.ml.training import train_baseline_model
 from footai.ml.evaluation import print_results_summary
-from footai.ml.feature_engineering import engineer_features, engineer_multiseason_features, save_features
+from footai.ml.feature_engineering import engineer_features, save_features
 
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
@@ -31,6 +31,7 @@ def main():
     
     parser = create_parser()
     args = parser.parse_args()
+    if args.elo_transfer: args.multiseason=True
     if args.verbose: print("Running the code with args:", args)
 
     divisions = args.division
@@ -44,7 +45,11 @@ def main():
                 download_football_data(season, division, paths['raw'])
 
     elif args.cmd == "promotion-relegation":        
-        for season in seasons:
+        for season_idx, season in enumerate(seasons):
+            if season_idx == 0:
+                # First season - no previous season to compare
+                print(f"Skipping promotion-relegation for first season ({season})")
+                continue
             prev_season = get_previous_season(season)
             results = identify_promotions_relegations_for_season(season, args.country, prev_season, dirs, args)
             save_promotion_relegation(results, season, args.country, dirs)
@@ -65,7 +70,13 @@ def main():
 
     elif args.cmd == 'features':
         if args.multiseason:
-            engineer_multiseason_features( seasons, divisions, dirs, window_sizes=[3, 5], args=args)
+            for division in divisions:
+                elo_dir = get_multiseason_path(dirs['proc'], division, seasons[0], seasons[-1], args)
+                df = pd.read_csv(elo_dir)
+                enriched_df = engineer_features(df, window_sizes=[3, 5], verbose=True)
+                proc_dir = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)
+                save_features(enriched_df, proc_dir, verbose=True)
+
         else:
             for season in seasons:
                 for division in divisions:
@@ -83,7 +94,7 @@ def main():
         all_results={}
         if args.multiseason:
             for division in divisions:
-                features_csv = dirs['feat'] / f"{division}_{seasons[0]}_to_{seasons[-1]}.csv" #should be generalised
+                features_csv = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)
                 print("\n" + "="*70)
                 print(f"TRAINING for {division} ({seasons})")
                 print("="*70)

@@ -247,7 +247,11 @@ figures/                                            # interactive plots
 - 🔄 Live API predictions and dashboard integration
 - 🔄 Ethical audits and betting disclaimers
 
-
+## Future work 
+Features to be considered in the longer term include:
+- Downloading additional information, such as squad values data, or even more individualised per player information -> This could enable the usage of deeper models.
+- Apply the model to do season predictions using Monte Carlo simulations.
+ 
 ## License
 
 MIT License - see LICENSE file
