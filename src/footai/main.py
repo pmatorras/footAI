@@ -16,9 +16,9 @@ from footai.ml.feature_engineering import engineer_features, save_features, comb
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {
-        'raw'  : args.raw_dir,
-        'proc' : args.processed_dir,
-        'feat' : args.features_dir,
+        'raw'  : args.raw_dir / args.country,
+        'proc' : args.processed_dir / args.country,
+        'feat' : args.features_dir / args.country,
         'fig'  : FIG_DIR
 
     }
@@ -90,11 +90,14 @@ def main():
                     save_features(enriched_df, paths['feat'], verbose=True)
 
     elif args.cmd == "train":
+        args.stats = False if args.nostats else True
         if args.verbose: print("Training...")
         all_results={}
-        if args.multi_division:            
+        if args.multi_division:  
             combined_features = combine_divisions_features(args.country, divisions, seasons, dirs, args)
-            
+            print("\n" + "="*70)
+            print(f"TRAINING for {divisions} ({seasons})")
+            print("="*70)          
             results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2, args=args)            
         elif args.multi_season:
             for division in divisions:
@@ -106,8 +109,6 @@ def main():
                 results = train_baseline_model( features_csv, feature_set=args.features_set, test_size=0.2, save_model=f"models/{seasons[0]}_to{seasons[-1]}_{division}_{args.features_set}_rf.pkl",args=args)
                 all_results[division] = results['accuracy']
 
-                print(f"\nFinal accuracy ({args.features_set}): {results['accuracy']*100:.1f}%")
-                print(f"Features used: {len(results['feature_names'])}")
                 print("="*70)         
         else:
             for season in seasons:
@@ -118,14 +119,11 @@ def main():
                     print("\n" + "="*70)
                     print(f"TRAINING for {division} ({season})")
                     print("="*70)
+
                     # Train baseline model
                     results = train_baseline_model( features_csv, feature_set="baseline", test_size=0.2, save_model=f"models/{season}_{division}_baseline_rf.pkl",args=args)
                     all_results[season][division] = results['accuracy']
 
-                    print(f"\nFinal accuracy: {results['accuracy']*100:.1f}%")
-                    print(f"Features used: {len(results['feature_names'])}")
-                    print("="*70)
-            print(divisions)
             print_results_summary(all_results, divisions)
 
     elif args.cmd == "plot":

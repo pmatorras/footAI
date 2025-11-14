@@ -6,7 +6,7 @@ help:
 # If you run 'make train VERBOSE=yes' it will be 'yes'.
 VERBOSE ?= no
 MULTI_DIVISION ?= no
-
+MULTI_DIVISION := $(if $(MULTI_DIVISION_FLAG),$(MULTI_DIVISION_FLAG),$(MULTI_DIVISION))
 # Define a variable that holds the flag if VERBOSE is 'yes', otherwise empty
 PYTHON_FLAGS = $(if $(filter $(VERBOSE),yes true 1),-v,)
 MULTI_DIV_FLAG = $(if $(filter $(MULTI_DIVISION),yes true 1),--multi-division,)
@@ -42,7 +42,7 @@ prepare_train: promotion elo features
 prepare_train_multi: promotion elo_multi features_multi
 
 train: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG)  --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
 
 train_multi: 
 	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)  --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)

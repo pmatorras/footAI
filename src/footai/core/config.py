@@ -1,11 +1,12 @@
 from pathlib import Path
-import os 
-ROOT_DIR = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
-DATA_DIR = ROOT_DIR / 'data/'
-RAW_DIR = DATA_DIR / 'raw/'
-PROCESSED_DIR = DATA_DIR / 'processed/'
-FEATURES_DIR = DATA_DIR / 'features/'
-FIG_DIR = ROOT_DIR / 'figures/'
+
+ROOT_DIR      = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
+DATA_DIR      = ROOT_DIR / 'data'
+RAW_DIR       = DATA_DIR / 'raw'
+PROCESSED_DIR = DATA_DIR / 'processed'
+FEATURES_DIR  = DATA_DIR / 'features'
+FIG_DIR       = ROOT_DIR / 'figures'
+
 COUNTRIES = {
     "SP" : {
         "name" : "Spain",
@@ -80,9 +81,19 @@ def get_season_paths(season, division, dirs, args):
         'fig' : fig_path
     }
 
-def get_multiseason_path(dir, division, season_start, season_end, args=None):
+def get_promotion_relegation_file(dirs, country, season):
+    '''A common promotion_relegation file path'''
+    promo_dir = Path(dirs['proc']) / "promotion"
+    promo_dir.mkdir(parents=True, exist_ok=True)
+
+    return  promo_dir / f"{country}_{season}_promotion_relegation.csv"
+
+
+
+def get_multiseason_path(multiseason_dir, division, season_start, season_end, args=None):
     suffix = '_transfer' if args.elo_transfer else '_multi'
-    return dir / f'{division}_{season_start}_to_{season_end}{suffix}.csv'
+    multiseason_dir.mkdir(parents=True, exist_ok=True)
+    return multiseason_dir / f'{division}_{season_start}_to_{season_end}{suffix}.csv'
 
 def get_data_loc(season, division, country, file_dir = None, file_type='', suffix='', verbose=False):
     """
@@ -90,13 +101,16 @@ def get_data_loc(season, division, country, file_dir = None, file_type='', suffi
     
     Returns path as: {country}_{season}_{division}[_elo][_multi][.csv|.html]
     """
+    file_dir = Path(file_dir) if file_dir is not None else Path('.')
+    file_dir.mkdir(parents=True, exist_ok=True)
+
     elo_suffix = '_elo' if 'elo' in file_type else ''
     file_type = '.html' if 'fig' in file_type else '.csv'
     # Create filename
     filename = f"{country.upper()}_{season}_{division}{elo_suffix}{suffix}{file_type}"
-    filepath =  os.path.join(file_dir, filename)
-    if verbose: print(f"Chosen file: {filepath}")
-    return filepath
+    path = file_dir / filename
+    if verbose: print(f"Chosen file: {path}")
+    return path
 
 def get_previous_season(season_str):
     """Convert season string to previous season (e.g., '2324' -> '2223')."""

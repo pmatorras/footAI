@@ -26,6 +26,7 @@ def create_parser():
     p_feat = sub.add_parser('features', help="Calculate feature analysis varialbes")
     p_plot = sub.add_parser("plot", help="Plot ELO rankings")
     p_train = sub.add_parser("train", help="Plot ELO rankings")
+    p_train.add_argument('--nostats', action='store_true', help='Remove printout of relevant statistics.')
 
     for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
