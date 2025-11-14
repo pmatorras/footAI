@@ -1,6 +1,6 @@
 """Test input validators."""
 import pytest
-from footai.core.validators import validate_decay_factor
+from footai.utils.validators import validate_decay_factor
 
 def test_valid_decay_factor():
     """Test valid decay factor."""

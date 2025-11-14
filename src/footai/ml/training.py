@@ -7,11 +7,13 @@ Simple baseline implementation for footAI v0.2
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 import joblib
 from pathlib import Path
-from footai.ml.models import get_models, select_features
+from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.metrics import confusion_matrix, accuracy_score, recall_score
+
+from footai.ml.models import get_models
+from footai.utils.config import select_features
 from footai.ml.evaluation import print_confusion, print_per_division, print_feature_importance
 
 

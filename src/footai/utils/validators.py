@@ -1,5 +1,5 @@
 import argparse
-from footai.core.config import COUNTRIES
+from footai.utils.config import COUNTRIES
 
 
 class ValidateDivisionAction(argparse.Action):

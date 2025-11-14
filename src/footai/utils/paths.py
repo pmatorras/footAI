@@ -1,52 +1,5 @@
+"""Utility functions for season handling."""
 from pathlib import Path
-
-ROOT_DIR      = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
-DATA_DIR      = ROOT_DIR / 'data'
-RAW_DIR       = DATA_DIR / 'raw'
-PROCESSED_DIR = DATA_DIR / 'processed'
-FEATURES_DIR  = DATA_DIR / 'features'
-FIG_DIR       = ROOT_DIR / 'figures'
-
-COUNTRIES = {
-    "SP" : {
-        "name" : "Spain",
-        "divisions": {
-            "SP1" : "La Liga",
-            "SP2" : "Segunda"
-            },
-        },
-    "EN" : {
-        "name" : "England",
-        "divisions": {
-            "E0" : "Premier League",
-            "E1" : "Championship",
-            "E2" : "EFL League 1",
-            "E3" : "EFL League 2",
-            "EC" : "National League"
-            },
-        },
-    "IT" : {
-        "name" : "Italy",
-        "divisions": {
-            "I1" : "Serie A",
-            "I2" : "Serie B"
-            },
-        },
-    "DE" : {
-        "name" : "Germany",
-        "divisions": {
-            "D1" : "Bundesliga",
-            "D2" : "2. Bundesliga"
-            },
-        },
-    "FR" : {
-        "name" : "France",
-        "divisions": {
-        "FR1" : "Ligue 1",
-        "FR2" : "Ligue 2"
-        }
-    }
-}
 
 def year_to_season_code(season):
     """Convert starting year to compact season format (e.g., 2024 -> '2425' for 2024-25)"""
@@ -121,3 +74,29 @@ def get_previous_season(season_str):
     prev_end = year_end - 1
     
     return f"{prev_start:02d}{prev_end:02d}"
+
+def parse_start_years(years_str):
+    """
+    Parse season start years and convert to season codes.
+    
+    Takes comma-separated years and converts each to a compact season format.
+    Supports both 4-digit (2024) and 2-digit (24) formats.
+    
+    Args:
+        seasons_str: Comma-separated years (e.g., "2024,2025" or "23,24")
+    
+    Returns:
+        List of season codes (e.g., ['2425', '2526'])
+    """
+    years = []
+    for year_str in years_str.split(','):
+        year_str = year_str.strip()
+        year = int(year_str)
+        
+        # If 2-digit year, expand to 20xx
+        if year < 100:
+            year = 2000 + year
+        
+        years.append(year_to_season_code(year))
+    
+    return years

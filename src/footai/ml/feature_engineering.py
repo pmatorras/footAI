@@ -11,7 +11,7 @@ Called from main.py via the 'feature-engineer' command.
 import pandas as pd
 import numpy as np
 from typing import Dict, List
-from footai.core.config import get_multiseason_path
+from footai.utils.paths import get_multiseason_path
 from pathlib import Path
 
 

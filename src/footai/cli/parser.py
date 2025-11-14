@@ -1,7 +1,7 @@
 """Command-line interface setup."""
 import argparse
-from footai.core.config import COUNTRIES, RAW_DIR, PROCESSED_DIR, FEATURES_DIR
-from footai.core.validators import ValidateDivisionAction, validate_decay_factor
+from footai.utils.config import COUNTRIES, RAW_DIR, PROCESSED_DIR, FEATURES_DIR
+from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
 
 def create_parser():
     """Create and configure the argument parser."""
