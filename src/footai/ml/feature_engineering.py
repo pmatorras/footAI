@@ -11,6 +11,9 @@ Called from main.py via the 'feature-engineer' command.
 import pandas as pd
 import numpy as np
 from typing import Dict, List
+from footai.utils.paths import get_multiseason_path
+from pathlib import Path
+
 
 def team_matches_rows(df, team_name):
     team_matches = []
@@ -424,3 +427,61 @@ def save_features(df: pd.DataFrame, output_path: str, verbose: bool = False):
 
 
 
+# src/footai/ml/feature_engineering.py
+
+def combine_divisions_features(country, divisions, seasons, dirs, args):
+    """
+    Combine feature files from multiple divisions into single training dataset.
+    
+    Args:
+        country: Country code (e.g., 'SP')
+        divisions: List of divisions (e.g., ['SP1', 'SP2'])
+        seasons: List of season codes
+        dirs: Directory paths dict
+        args: Command line arguments
+    
+    Returns:
+        Path to combined features file
+    """
+    
+    all_dfs = []
+    
+    print(f"\nCombining features from {len(divisions)} divisions...")
+    print("="*70)
+    
+    for division in divisions:
+        feature_file = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)
+        
+        if not Path(feature_file).exists():
+            print(f"Warning: {division} features not found at {feature_file}")
+            print(f"Run: footai features --country {country} --div {division} --season-start {','.join(seasons)} --multiseason")
+            continue
+        
+        df = pd.read_csv(feature_file)
+        df['Division'] = division
+        all_dfs.append(df)
+        
+        print(f"Loaded {len(df)} matches from {division}")
+    if not all_dfs:
+        raise ValueError(f"No feature files found for divisions: {divisions}")
+    
+    combined = pd.concat(all_dfs, ignore_index=True)
+    combined = combined.sort_values('Date').reset_index(drop=True)
+    
+    # Add division features
+    combined['is_tier1'] = (combined['Division'] == divisions[0]).astype(int)
+    combined['division_tier'] = combined['Division'].map({
+        div: idx + 1 for idx, div in enumerate(divisions)
+    })
+    
+    # Save combined file
+    suffix = '_transfer' if args.elo_transfer else '_multi'
+    output_file = dirs['feat'] / f"{country}_multidiv_{seasons[0]}_to_{seasons[-1]}{suffix}.csv"
+    combined.to_csv(output_file, index=False)
+    
+    print(f"\nCombined dataset:")
+    print(f"  Total matches: {len(combined)}")
+    print(f"  Divisions: {divisions}")
+    print(f"  Output: {output_file}")
+    
+    return output_file

@@ -14,16 +14,15 @@ Supports multi-season analysis with configurable decay factors.
 - [Installation](#installation)
 - [Usage](#usage)
 - [Model Configuration](#model-configuration)
-- [Pipeline](#pipeline)
-- [Project Structure](#project-structure)
+- [Supported Countries](#supported-countries--divisions)
 - [Files & Outputs](#files-and-outputs)
-- [Supported Countries](#supported-countries)
+- [Project Structure](#project-structure)
+- [Pipeline](#pipeline)
 - [Roadmap](#roadmap)
-- [Requirements](#requirements)
 - [License](#license)
 
 ## About
-This project takes the fetches football data from the main European leages, from [**football-data.co.uk**](https://football-data.co.uk/), and calculates Elo ratings using the [standard formula](https://en.wikipedia.org/wiki/Elo_rating_system):
+This project fetches football data from the main European leages, from [**football-data.co.uk**](https://football-data.co.uk/), and calculates Elo ratings using the [standard formula](https://en.wikipedia.org/wiki/Elo_rating_system):
 
 - Initial rating: 1500
 - K-factor: 32 (volatility per match)
@@ -82,7 +81,7 @@ pip install -e .
 ## Usage
 footAI provides four main commands to download data, calculate Elo ratings, track team movements, and visualize results.
 
-### Available Commands
+### Commands
 
 **download** - Fetch match data from football-data.co.uk
 ```bash
@@ -100,11 +99,13 @@ footai promotion-relegation --country SP --season-start 23,24
 footai elo --country SP --season-start 23,24
 footai elo --season-start 23,24 -m --decay-factor 0.95  # Multi-season with decay
 ```
-
-**train** - Train ML models (RandomForest default; supports multi-season, Elo transfer)
+**features** necessary for the ML training 
+```bash
+footai features --country SP --div SP1 --season-start 22,23,24,25 -m
+```
+**train** - Train ML models (RandomForest default; supports multi-season, multi-division, Elo transfer)
 ```bash
 footai train --country SP --div SP1,SP2 --season-start 23,24 --elo-transfer  -m 
-
 ```
 
 
@@ -123,30 +124,27 @@ All subcommands (`download`, `elo`, `plot`) support these options:
 | `--country` | Country code (default: SP) | `--country EN` |
 | `--div` | Division(s), comma-separated | `--div SP1,SP2` |
 | `--season-start` | Season start year(s), comma-separated | `--season-start 22,23,24` |
-| `-m, --multiseason` | Calculate across multiple seasons | `-m` |
 | `-v, --verbose` | Show detailed output | `-v` |
-| `--decay-factor` | Elo decay factor 0-1 (default: 0.95) | `--decay-factor 0.9` |
-| `--raw-dir` | Directory for raw data (default: `football_data`) | `--raw-dir my_data` |
 | `--processed-dir` | Directory for processed data | `--processed-dir my_output` |
+
+### Elo-Specific Options
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--decay-factor` | Elo decay factor 0-1 (default: 0.95) | `--decay-factor 0.9` |
+
+| `--raw-dir` | Directory for raw data (default: `football_data`) | `--raw-dir my_data` |
+
+### Training-Specific Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--model` | Chose what model to train | `rf` |
 | `--features-set` | ML features (`baseline/extended/draw_optimized`; default: `draw_optimized`) | `--features-set baseline` |
-### Examples
+| `-m, --multiseason` | Calculate across multiple seasons | `-m` |
+| `--multi-division` | Train on combined divisions (e.g., I1+I2) | `False` |
+| `--nostats` | Suppress detailed statistics output | `False` |
 
-```bash
-# Download Spanish La Liga seasons 2022-2025
-footai download --country SP --season-start 22,23,24,25 -m
-
-# Calculate Elo for Premier League 2024-25 with custom directory
-footai elo --country EN --season-start 24 --processed-dir my_output
-
-# Generate multi-season plot with Elo decay
-footai plot --country SP --season-start 22,23,24,25 -m --decay-factor 0.95
-
-# Track team movements with verbose output
-footai promotion-relegation --country SP --season-start 23,24 -v --elo-transfer
-
-#Train multi-season model on SP1 with draw_optimized (v1.0)
-footai train --country SP --div SP1 --season-start 22,23,24 --elo-transfer --features-set draw_optimized -m -v
-```
 
 ## Model Configuration
 
@@ -157,18 +155,59 @@ The ML pipeline uses a RandomForestClassifier (`scikit-learn`) with balanced cla
 - **Training**: 3-fold temporal CV; `n_estimators=100`, `max_depth=10`. 
 - **CLI**: Use `--features-set draw_optimized` for v1.0; alternatives: `baseline` (12 features, lean), `extended` (~18 features).
 
+---
+
+## Supported Countries & Divisions
 
 
+The tool supports the following leagues, organized by country code and division identifier:
 
+| Country | Code | Division | Division Code | League Name          |
+|---------|------|----------|---------------|----------------------|
+| Spain   | `SP` | Top tier | `SP1`         | La Liga              |
+|         |      | Second   | `SP2`         | Segunda              |
+| Italy   | `IT` | Top tier | `I1`          | Serie A              |
+|         |      | Second   | `I2`          | Serie B              |
+| 󠁧England | `EN` | Top tier | `E0`          | Premier League       |
+|         |      | Second   | `E1`          | Championship         |
+|         |      | Third    | `E2`          | EFL League 1         |
+|         |      | Fourth   | `E3`          | EFL League 2         |
+|         |      | Fifth    | `EC`          | National League      |
+| Germany | `DE` | Top tier | `D1`          | Bundesliga           |
+|         |      | Second   | `D2`          | 2. Bundesliga        |
+| France  | `FR` | Top tier | `FR1`         | Ligue 1              |
+|         |      | Second   | `FR2`         | Ligue 2              |
 
-## Pipeline
+**Usage:** Specify the country code with `--country` and division code(s) with `--div`:
 
-1. **Download** – Fetch match data from [football-data.co.uk](https://football-data.co.uk)
-2. **Calculate** – Compute Elo ratings for all teams per match
-3. **Train** – Engineer features and train ML model for predictions
-4. **Plot** – Visualize team progression as interactive charts
-5. **Dash** – Interactive dashboard (WIP)
+## Files and outputs
 
+```bash
+├── data/
+│ ├── raw/{COUNTRY}/ # SP/, IT/, EN/, etc.
+│ ├── processed/{COUNTRY}/ # Elo-enhanced data
+│   └── promottions/ # Data for each promoted and relegated team per season
+│ └── features/{COUNTRY}/ # ML-ready features
+├── models/{COUNTRY}/ # Trained models
+├── results/{COUNTRY}/ # Training logs & JSON metrics
+└── figures/ # Elo visualizations
+```
+### File Naming
+
+Files follow the pattern: `{COUNTRY}_{SEASON}_{DIVISION}{SUFFIX}`
+
+Examples:
+- `SP_2324_SP1_elo.csv` → Spain, 2023/24, La Liga, Elo data
+- `IT_2324_I1_feat.csv` → Italy, 2023/24, Serie A, features
+- `EN_2223_E0_rf.pkl` → England, 2022/23, Premier League, model
+
+**Seasons:** `2324` = 2023/24, `2223` = 2022/23, etc.
+
+### Training Results
+
+Each run creates two files in `results/{COUNTRY}/`:
+- `.txt` → Full output (CV, confusion matrix, feature importance)
+- `.json` → Structured metrics (accuracy, precision/recall, CV stats)
 
 ## Project Structure
 
@@ -176,27 +215,36 @@ The ML pipeline uses a RandomForestClassifier (`scikit-learn`) with balanced cla
 src/footai/
 ├── init.py
 ├── main.py # Entry point for python -m footai
-├── cli.py # Argument parser setup
-├── main.py # Business logic & command dispatch
 │
+├── cli/ # Command handlers
+│ ├── parser.py # Argument parser setup
+│ ├── train.py # Training command orchestration
+│ ├── download.py # Download command handler
+│ ├── elo.py # Elo command handler
+│ ├── promotion.py # Promotion/relegation handler
+│ ├── features.py # Feature engineering handler
+│ └── plot.py # Plotting command handler
+|
 ├── core/ # Domain business logic
-│ ├── init.py
-│ ├── config.py # Configuration & constants
 │ ├── elo.py # Elo rating calculations
-│ ├── team_movements.py # Promotion/relegation tracking
-│ ├── validators.py # Input validation
-│ └── utils.py # Utility functions
+│ └── team_movements.py # Promotion/relegation tracking
 │
 ├── data/ # Data acquisition & processing
 │ ├── init.py
 │ └── downloader.py # Download match data from football-data.co.uk
 │
-├── ml/                        # Machine Learning (NEW)
-│   ├── feature_engineering.py # Rolling features, odds normalization
-│   ├── models.py              # Model training (RandomForest, XGBoost)
-│   └── evaluation.py          # Results summary, benchmarks, metrics
+├── ml/                      # Machine Learning (NEW)
+│ ├── feature_engineering.py # Rolling features, odds normalization
+│ ├── models.py              # Model training (RandomForest, XGBoost)
+│ └── evaluation.py          # Results summary, benchmarks, metrics
 │
-└── viz/ # Visualization & UI
+├── utils/ # Shared infrastructure
+│ ├── config.py # Constants, feature sets, directories
+│ ├── paths.py # File path construction
+│ ├── validators.py # Input validation
+│ └── logger.py # Training run logging (stdout -> file)
+│
+├── viz/ # Visualization & UI
 ├── init.py
 ├── plotter.py # Interactive Plotly charts
 ├── dashboard.py # Dash web dashboard
@@ -204,53 +252,75 @@ src/footai/
 ```
 
 
+## Pipeline
 
-## Files and outputs
-
-```bash
-data/
-├── raw/                                            # Downloaded, unmodified
-│   └── {country}_{division}_{season}.csv           # e.g SP1_2024-25.csv
-└── processed/                                      # With Elo calculated
-│   └── {country}_{division}_{season}_elo.csv       # e.g SP1_2024-25_elo.csv
-│   └── {country}_{division}_{season}_elo_multi.csv # e.g SP1_2024-25_elo_multi.csv
-models/                                             # interactive plots
-├─── {season}_{division}_baseline_rf.csv            # e.g SP1_2024-25_elo.
-figures/                                            # interactive plots
-├─── {country}_{division}_{season}_elo.csv          # e.g SP1_2024-25_elo.
-└── {country}_{division}_{season}_elo_multi.html    # e.g SP1_2024-25_elo_multi.html
-```
-
-## Supported Countries
-
-| Code | Country |
-|------|---------|
-| SP | Spain (La Liga, Hypermotion) |
-| EN | England (Premier League, FA Championship) |
-| IT | Italy (Serie A/B) |
-| DE | Germany (Bundesliga 1/2) |
-| FR | France (Ligue 1/2) |
+1. **Download** – Fetch match data from [football-data.co.uk](https://football-data.co.uk)
+2. **Promotion** - Identify promoted/relegated teams between seasons
+3. **Elo** – Compute Elo ratings for all teams per match
+4. **Features** - Engineer ML features (rolling stats, Elo, odds normalization)
+5. **Train** – Engineer features and train ML model for predictions
+6. **Plot** – Visualize team progression as interactive charts
+7. **Dash** – Interactive dashboard (WIP)
 
 ## Roadmap
 
-**Current Features (v0.3)**
-- ✅ Elo calculations
-- ✅ Multi-season analysis
-- ✅ Feature engineering (`baseline`/`extended`/`draw_optimized`)
-- ✅ ML predictions (RandomForest with `draw_optimized` config)
+### ✅ Current Status (v1.0 - November 2025)
 
-**In Development (v0.4)**
+**Completed:**
+- Elo rating engine with multi-season support and decay
+- Promotion/relegation tracking with Elo transfer
+- Feature engineering: `baseline` (12), `extended` (18), `draw_optimized` (28)
+- RandomForest training with temporal cross-validation
+- Training result logging (`.txt` + `.json` metrics)
+- Multi-country support (SP, IT, EN, DE, FR)
+- Multi-division training (e.g., Serie A + Serie B combined)
 
-- 🔄 Hyperparameter tuning (depth, estimators; GB/XGB comparison)
-- 🔄 Multi-league model optimisation (SP1 optimised for now)
-- 🔄 SHAP explainability and probability calibration
-- 🔄 Live API predictions and dashboard integration
-- 🔄 Ethical audits and betting disclaimers
+**Performance Benchmarks (SP1, 2122-2425, ~760 matches):**
+- Test accuracy: **55.0%**
+- Draw recall: **33.3%** (vs. 25% baseline)
+- Draw F1: **0.328**
+- CV gap: ~3.1%
 
-## Future work 
-Features to be considered in the longer term include:
-- Downloading additional information, such as squad values data, or even more individualised per player information -> This could enable the usage of deeper models.
-- Apply the model to do season predictions using Monte Carlo simulations.
+---
+
+### 🔄 In Development (v1.1 - Q1 2026)
+
+**Model Improvements:**
+- Hyperparameter tuning (grid search for `max_depth`, `n_estimators`, `min_samples_split`)
+- Compare GradientBoosting vs. XGBoost vs. LightGBM on `draw_optimized` features
+- Probability calibration (Platt scaling, isotonic regression) for better confidence estimates
+- SHAP explainability (feature importance per match, counterfactual analysis)
+
+**Multi-League Optimization:**
+- Validate `draw_optimized` on IT (Serie A), EN (Premier League), DE (Bundesliga)
+- Per-league feature tuning (e.g., "low scoring" bias for Serie A vs. Premier League)
+- Cross-league transfer learning (train on SP+IT, test on EN)
+
+**Infrastructure:**
+- Add `footai backtest` command for historical strategy evaluation
+- Add `footai compare` command to compare feature sets side-by-side
+- Results dashboard (Streamlit/Dash) to visualize training runs from `results/*.json`
+
+---
+
+### Future Work (v1.2+)
+
+**Advanced Features:**
+- Squad value integration (Transfermarkt API) for team strength indicators
+- Player-level features (injuries, suspensions, form) for deeper model inputs
+- xG (expected goals) data from advanced sources (Understat, FBref)
+
+**Predictions & Deployment:**
+- Live match predictions (consume real-time APIs like API-Football)
+- Monte Carlo season simulations (predict league table, top 4, relegation probabilities)
+- Web API (FastAPI) for serving model predictions
+- Betting strategy backtesting with Kelly criterion and ROI tracking
+
+**Ethics & Transparency:**
+- Betting disclaimers and responsible gambling warnings
+- Model card documentation (data sources, biases, limitations)
+- Fairness audits (class imbalance handling, minority league representation)
+
  
 ## License
 

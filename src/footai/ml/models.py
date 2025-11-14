@@ -6,8 +6,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.calibration import CalibratedClassifierCV
-#from xgboost import XGBClassifier
-#from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 import warnings
 # Suppress LightGBM feature name warnings (sklearn 1.0+ issue)
 warnings.filterwarnings(
@@ -103,7 +103,38 @@ def get_models(args):
                                            class_weight="balanced"
                                         ))
         ]),
-        '''
+
+        "rf_cal": Pipeline([
+            ("sanitize", sanitize),                    # replace ±inf with NaN
+            ("impute", SimpleImputer(strategy="median")),  # handle NaN
+            ("scaler", "passthrough"),  # trees don"t need scaling
+            ("clf", CalibratedClassifierCV(
+                estimator=RandomForestClassifier(
+                    n_estimators=n_estimators,
+                    max_depth=max_depth,
+                    min_samples_split=0.02,
+                    min_samples_leaf=0.01,
+                    max_samples=max_samples,
+                    max_features=max_features,
+                    random_state=42,
+                    n_jobs=-1,
+                    class_weight="balanced"
+                ),
+                method='sigmoid',
+                cv=3
+            ))
+        ]),
+        'gb': Pipeline([
+        ("clf", GradientBoostingClassifier(
+            n_estimators=50,
+            max_depth=3,
+            learning_rate=0.01,
+            subsample=0.5,
+            validation_fraction=0.2,
+            n_iter_no_change=10,
+            random_state=42
+        ))
+    ]),
         # XGBoost - same pipeline structure
         "xgb": Pipeline([
             ("sanitize", sanitize),
@@ -148,93 +179,5 @@ def get_models(args):
                 verbose=-1  # Suppress training logs
             ))
         ]),
-        '''
-
-        "rf_cal": Pipeline([
-            ("sanitize", sanitize),                    # replace ±inf with NaN
-            ("impute", SimpleImputer(strategy="median")),  # handle NaN
-            ("scaler", "passthrough"),  # trees don"t need scaling
-            ("clf", CalibratedClassifierCV(
-                estimator=RandomForestClassifier(
-                    n_estimators=n_estimators,
-                    max_depth=max_depth,
-                    min_samples_split=0.02,
-                    min_samples_leaf=0.01,
-                    max_samples=max_samples,
-                    max_features=max_features,
-                    random_state=42,
-                    n_jobs=-1,
-                    class_weight="balanced"
-                ),
-                method='isotonic',
-                cv=3
-            ))
-        ]),
-        'gb': Pipeline([
-        ("clf", GradientBoostingClassifier(
-            n_estimators=50,
-            max_depth=3,
-            learning_rate=0.01,
-            subsample=0.5,
-            validation_fraction=0.2,
-            n_iter_no_change=10,
-            random_state=42
-        ))
-    ])
     }
     return models
-
-
-def select_features(df, feature_set="baseline"):
-    """
-    Select features for training.
-
-    Args:
-        df: DataFrame with features
-        feature_set: Which feature set to use:
-            - "baseline": Core Elo + form + odds (12 features)
-            - "extended": Add shots and goal difference (18 features)
-            - "all": All available features
-
-    Returns:
-        List of feature column names
-    """
-    baseline_features = [
-        'HomeElo', 'AwayElo', 'elo_diff',
-        'home_goals_scored_L5', 'away_goals_scored_L5',
-        'home_goals_conceded_L5', 'away_goals_conceded_L5',
-        'home_ppg_L5', 'away_ppg_L5', 'form_diff_L5',
-        'odds_home_prob_norm', 'odds_away_prob_norm'
-    ]
-
-    extended_features = baseline_features + [
-        'home_shots_L5', 'away_shots_L5',
-        'home_shot_accuracy_L5', 'away_shot_accuracy_L5',
-        'home_gd_L5', 'away_gd_L5'
-    ]
-    draw_features = extended_features + ['draw_prob_consensus', 'draw_prob_dispersion', 'under_2_5_prob', 'under_2_5_zscore',
-                    'abs_elo_diff', 'elo_diff_sq', 'low_elo_diff', 'medium_elo_diff', 'abs_odds_prob_diff',
-                    'abs_ahh', 'ahh_zero', 'ahh_flat', 'min_shots_l5', 'min_shot_acc_l5', 'min_goals_scored_l5',
-                    #'home_draw_rate_l10', 'away_draw_rate_l10', #Currently broken
-                    'league_draw_bias'] 
-    top_draw_features = extended_features + [
-        'draw_prob_consensus', 'abs_odds_prob_diff', 'under_2_5_prob', 
-        'draw_prob_dispersion', 'abs_elo_diff', 'under_2_5_zscore', 'elo_diff_sq',
-        'min_shot_acc_l5', 'min_shots_l5', 'abs_ahh'  
-    ]
-    if feature_set == "baseline":
-        return [f for f in baseline_features if f in df.columns]
-    elif feature_set == "extended":
-        return [f for f in extended_features if f in df.columns]
-    elif feature_set == "draw_features":
-        return [f for f in draw_features if f in df.columns]
-    elif feature_set == "draw_optimized":
-        return [f for f in top_draw_features if f in df.columns]
-    elif feature_set == "all":
-        # All numeric columns except metadata and target
-        exclude = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
-                   'FTHG', 'FTAG', 'FTR', 'HTHG', 'HTAG', 'HTR']
-        return [col for col in df.columns if col not in exclude 
-                and df[col].dtype in ['float64', 'int64']]
-    else:
-        raise ValueError(f"Unknown feature_set: {feature_set}")

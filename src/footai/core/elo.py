@@ -1,7 +1,7 @@
 import pandas as pd
 from collections import defaultdict
 from footai.core.team_movements import load_promotion_relegation
-from footai.core.config import get_season_paths, get_multiseason_path
+from footai.utils.paths import get_season_paths, get_multiseason_path
 
 def expected_score(elo_a, elo_b):
     """

@@ -1,5 +1,5 @@
 import requests
-from footai.core.config import DATA_DIR
+from footai.utils.config import DATA_DIR
 
 def download_football_data(season_str, division, filepath=DATA_DIR):
     """

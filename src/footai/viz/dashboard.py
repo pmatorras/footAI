@@ -1,12 +1,12 @@
 from dash import Dash, dcc, html, Input, Output
 from footai.viz.plotter import plot_elo_rankings
-from footai.core.config import get_data_loc, season_to_season_str, PROCESSED_DIR, COUNTRY, DIV
+from footai.utils.config import  PROCESSED_DIR
+from footai.utils.paths import get_data_loc, PROCESSED_DIR
 
 app = Dash(__name__)
 
-SEASON = 2024
-
-
+SEASON = 2425
+COUNTRY = "SP"
 app.layout = html.Div([
     html.H1("Elo Rankings - La Liga"),
 
@@ -28,7 +28,7 @@ app.layout = html.Div([
 
 def update_graph(division):
     div_int = int(division[-1])  # Extract the "1" or "2" from options
-    season_str = season_to_season_str(SEASON, COUNTRY, div_int)
+    season_str = SEASON
     elo_path = get_data_loc(season_str, division=div_int, country=COUNTRY, data_dir=PROCESSED_DIR, elo=True)
     div_plot = str(COUNTRY) + str(div_int)
     return plot_elo_rankings(csv_path=elo_path, division=div_plot)

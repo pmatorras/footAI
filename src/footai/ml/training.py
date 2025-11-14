@@ -7,12 +7,14 @@ Simple baseline implementation for footAI v0.2
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 import joblib
 from pathlib import Path
-from footai.ml.models import get_models, select_features
+from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 
+from footai.ml.models import get_models
+from footai.utils.config import select_features
+from footai.ml.evaluation import print_classification, print_confusion, print_per_division, print_feature_importance
 
 
 
@@ -38,23 +40,30 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
             - feature_names: List of features used
             - accuracy: Test accuracy
     """
+    verbose = getattr(args, 'verbose', False)  # Default to False if args is None
+    stats = getattr(args, 'stats', False)  # Default to False if args is None
+
     # Load features
-    if args.verbose:
+    if verbose:
         print(f"Loading features from: {features_csv}")
 
     df = pd.read_csv(features_csv)
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values('Date')
 
-    if args.verbose:
+    if verbose:
         print(f"Loaded {len(df)} matches")
 
     # Select features
     feature_cols = select_features(df, feature_set)
-
-    if args.verbose:
+    if 'is_tier1' in df.columns:
+        if verbose: print(f"  Adding division features: is_tier1, division_tier")
+        feature_cols = feature_cols + ['is_tier1', 'division_tier']
+    if verbose:
         print(f"\nUsing {len(feature_cols)} features ({feature_set} set)")
 
+    feature_cols = [c for c in feature_cols if c != 'division_tier']
+    feature_cols = [c for c in feature_cols if c != 'is_tier1']
 
     # Prepare X, y
     X = df[feature_cols]
@@ -68,7 +77,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         X, y, test_size=test_size, shuffle=False  # No shuffle for temporal order
     )
 
-    if args.verbose:
+    if verbose:
         print(f"\nTrain: {len(X_train)} matches")
         print(f"Test:  {len(X_test)} matches")
         print(f"\nTarget distribution (full dataset):")
@@ -78,22 +87,35 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     # Create and train model
     models = get_models(args)
-    model = models['rf'] #baseline for first attemps
+    model = models[args.model] #baseline for first attemps
 
-    if args.verbose:
+    if verbose:
         print("\nTraining Random Forest...")
 
 
     #check CV via timeseries
     tscv = TimeSeriesSplit(n_splits=3)
     cv_acc = []; cv_draw_recall = []
-    label_map = {'H': 0, 'D': 1, 'A': 2}  # Standard for FTR
+    label_map = {'H': 0, 'D': 1, 'A': 2}  
 
+    use_div_weights = ('Division' in df.columns) and (df['Division'].nunique() > 1)
+
+    # TimeSeriesSplit as you have
     for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
         X_t, X_v = df.iloc[train_idx][feature_cols], df.iloc[test_idx][feature_cols]
         y_t, y_v_raw = df.iloc[train_idx]['FTR'], df.iloc[test_idx]['FTR']  # Use raw FTR (strings)
         
-        model.fit(X_t, y_t)  # Fit on raw (model handles strings)
+        if use_div_weights:
+            # Build per-fold division weights
+            div_t = df.iloc[train_idx]['Division']
+            div_counts = div_t.value_counts()
+            w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()
+            w_t = div_t.map(w_div_map).astype(float).values
+            w_t = np.nan_to_num(w_t, nan=1.0, posinf=1.0, neginf=1.0)
+            w_t = w_t / w_t.mean()
+            model.fit(X_t, y_t, clf__sample_weight=w_t)
+        else:
+            model.fit(X_t, y_t)
         y_p_raw = model.predict(X_v)  # Predictions as strings
         
         # Map to numeric for metrics
@@ -110,93 +132,54 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         
         cv_acc.append(fold_acc)
         cv_draw_recall.append(fold_draw_recall)
-        
         print(f"Fold {fold+1} Acc: {fold_acc:.3f}, Draw Recall: {fold_draw_recall:.3f}")
 
     print(f"CV Acc ({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
     print(f"CV Draw Recall: {np.mean(cv_draw_recall):.3f} ± {np.std(cv_draw_recall):.3f}")
 
-
-
-    #Full train/test
-    model.fit(X_train, y_train)
+    if use_div_weights:
+        #mimic fold structure
+        div_train = df.loc[X_train.index, 'Division']
+        div_counts = div_train.value_counts()
+        w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()
+        w_train = div_train.map(w_div_map).astype(float).values
+        w_train = np.nan_to_num(w_train, nan=1.0, posinf=1.0, neginf=1.0)
+        w_train = w_train / w_train.mean()
+        model.fit(X_train, y_train, clf__sample_weight=w_train)
+    else:
+        model.fit(X_train, y_train)  
 
     # Predict
     y_pred = model.predict(X_test)
     y_pred_proba = model.predict_proba(X_test)
 
-    # Evaluate
+
     accuracy = accuracy_score(y_test, y_pred)
+    cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
+    # Calculate per-class metrics from confusion matrix
+    # cm[i,j] = true label i, predicted label j
+    home_precision = cm[0,0] / cm[:,0].sum() if cm[:,0].sum() > 0 else 0
+    home_recall = cm[0,0] / cm[0,:].sum() if cm[0,:].sum() > 0 else 0
+    draw_precision = cm[1,1] / cm[:,1].sum() if cm[:,1].sum() > 0 else 0
+    draw_recall = cm[1,1] / cm[1,:].sum() if cm[1,:].sum() > 0 else 0
+    away_precision = cm[2,2] / cm[:,2].sum() if cm[:,2].sum() > 0 else 0
+    away_recall = cm[2,2] / cm[2,:].sum() if cm[2,:].sum() > 0 else 0
 
-    if args.verbose:
-        print(f"\n{'='*70}")
-        print("BASELINE MODEL RESULTS")
-        print('='*70)
-        print(f"\nTest Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
-        print("\nBenchmarks:")
-        print("  Random guess: 33.3%")
-        print("  Always home:  ~45%")
-        print("  Market odds:  ~50-53%")
+    report = classification_report(y_test, y_pred, labels=['H','D','A'], zero_division=0)
 
-        print("\n" + "-"*70)
-        print("Classification Report:")
-        print("-"*70)
-        print(classification_report(y_test, y_pred))
+    print(f"Test Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
 
-        print("-"*70)
-        print(f"Confusion Matrix ({feature_set}):")
-        print("-"*70)
-        cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
-        print("         Predicted")
-        print("         H    D    A")
-        print(f"Actual H {cm[0][0]:4d} {cm[0][1]:4d} {cm[0][2]:4d}")
-        print(f"       D {cm[1][0]:4d} {cm[1][1]:4d} {cm[1][2]:4d}")
-        print(f"       A {cm[2][0]:4d} {cm[2][1]:4d} {cm[2][2]:4d}")
+    if stats:
+        print(f"Features used: {feature_cols if verbose else (len(feature_cols))}")
+        print_classification(y_test=y_test, y_pred=y_pred, feature_set=feature_set, class_report=report)
+        print_confusion(y_test=y_test, y_pred=y_pred, feature_set=feature_set, cm=cm)
+        if 'Division' in df.columns:
+            df_test = df.iloc[-len(y_test):].copy()
+            df_test['Prediction'] = y_pred
+            print_per_division(df_test, pred_col='Prediction')
+        print_feature_importance(model, feature_cols, feature_set)
 
-        print("\n" + "-"*70)
-        print(f"Feature Importance ({feature_set}, Top 10):")
-        print("-"*70)
-        # Get feature importance from the classifier in pipeline
-        clf = model.named_steps['clf']
-
-
-        # Handle different classifiers (RF/GB use feature_importances_; LogReg uses coef_)
-        if hasattr(clf, 'feature_importances_'):
-            importances = clf.feature_importances_
-        elif hasattr(clf, 'coef_'):
-            importances = np.abs(clf.coef_).mean(axis=0)  # Mean abs coef for multi-class
-        else:
-            print("Warning: Classifier has no importances/coef_; skipping.")
-            return { ... }  # Or raise/continue without importance
-
-        n_importances = len(importances)
-        n_features_list = len(feature_cols)
-
-        print(f"Debug: Importances length: {n_importances}, Feature list length: {n_features_list}")  # Remove after fix
-
-        if n_importances != n_features_list:
-            print(f"Warning: Length mismatch! Aligning feature_cols to importances length ({n_importances}).")
-            # Slice to match (assumes pipeline uses first N features in order)
-            aligned_features = feature_cols[:n_importances]
-            # If you want exact names post-pipeline, add: aligned_features = clf.feature_names_in_ if hasattr(clf, 'feature_names_in_') else aligned_features
-        else:
-            aligned_features = feature_cols
-
-        importance_df = pd.DataFrame({
-            'feature': aligned_features,
-            'importance': importances
-        }).sort_values('importance', ascending=False)
-        print(importance_df.head(30).to_string(index=False))
-
-    # Save model if requested
-    if save_model:
-        save_path = Path(save_model)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump(model, save_path)
-        if args.verbose:
-            print(f"\nModel saved to: {save_path}")
-
-    return {
+    results = {
         'model': model,
         'X_test': X_test,
         'y_test': y_test,
@@ -204,8 +187,30 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         'y_pred_proba': y_pred_proba,
         'feature_names': feature_cols,
         'accuracy': accuracy,
-        'confusion_matrix': confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
+        'confusion_matrix': cm,
+        # CV stats
+        'cv_accuracy_mean': np.mean(cv_acc),
+        'cv_accuracy_std': np.std(cv_acc),
+        'cv_draw_recall_mean': np.mean(cv_draw_recall),
+        'cv_draw_recall_std': np.std(cv_draw_recall),
+
+        #Per class metrics
+        'home_precision': home_precision,
+        'home_recall': home_recall,
+        'draw_precision': draw_precision,
+        'draw_recall': draw_recall,
+        'away_precision': away_precision,
+        'away_recall': away_recall,
     }
+    # Save model if requested
+    if save_model:
+        save_path = Path(save_model)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(model, save_path)
+        if verbose:
+            print(f"\nModel saved to: {save_path}")
+
+    return results
 
 
 def predict_match(model, home_features, away_features, feature_names):

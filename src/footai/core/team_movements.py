@@ -1,7 +1,7 @@
-
-import pandas as pd
-from footai.core.config import get_season_paths, COUNTRIES
 import os
+import pandas as pd
+from footai.utils.config import COUNTRIES
+from footai.utils.paths import get_season_paths, get_promotion_relegation_file
 
 def identify_promotions_relegations_for_season(season, country, prev_season, dirs, args):
     """
@@ -95,18 +95,18 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
     return results_df
 
 
-def save_promotion_relegation(results_df, season, country, dirs):
-    """Save promotion/relegation data to CSV."""
-    output_path = dirs['proc'] / f"{country}_{season}_promotion_relegation.csv"
-    results_df.to_csv(output_path, index=False)
-    print(f"Saved to {output_path}\n")
-    return output_path
-
 
 def load_promotion_relegation(season, country, dirs):
     """Load previously computed promotion/relegation data."""
-    path = dirs['proc'] / f"{country}_{season}_promotion_relegation.csv"
+    path = get_promotion_relegation_file(dirs, country, season)
     if not path.exists():
         print(f"  File not found: {path}")
         return None
     return pd.read_csv(path)
+
+def save_promotion_relegation(results_df, season, country, dirs):
+    """Save promotion/relegation data to CSV."""
+    output_path = get_promotion_relegation_file(dirs, country, season)
+    results_df.to_csv(output_path, index=False)
+    print(f"Saved to {output_path}\n")
+    return output_path
