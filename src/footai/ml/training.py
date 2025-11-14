@@ -54,11 +54,13 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     # Select features
     feature_cols = select_features(df, feature_set)
     if 'is_tier1' in df.columns:
-        print(f"  Adding division features: is_tier1, division_tier")
+        if verbose: print(f"  Adding division features: is_tier1, division_tier")
         feature_cols = feature_cols + ['is_tier1', 'division_tier']
     if verbose:
         print(f"\nUsing {len(feature_cols)} features ({feature_set} set)")
 
+    feature_cols = [c for c in feature_cols if c != 'division_tier']
+    feature_cols = [c for c in feature_cols if c != 'is_tier1']
 
     # Prepare X, y
     X = df[feature_cols]
@@ -82,7 +84,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     # Create and train model
     models = get_models(args)
-    model = models['rf'] #baseline for first attemps
+    model = models[args.model] #baseline for first attemps
 
     if verbose:
         print("\nTraining Random Forest...")
@@ -91,13 +93,27 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     #check CV via timeseries
     tscv = TimeSeriesSplit(n_splits=3)
     cv_acc = []; cv_draw_recall = []
-    label_map = {'H': 0, 'D': 1, 'A': 2}  # Standard for FTR
+    label_map = {'H': 0, 'D': 1, 'A': 2}  
 
+    print(df.columns)
+    # static division weights from actual counts (balanced across divisions)
+    div_counts = df['Division'].value_counts()
+    w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()  # ∝ 1/N_d
+
+    # TimeSeriesSplit as you have
     for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
         X_t, X_v = df.iloc[train_idx][feature_cols], df.iloc[test_idx][feature_cols]
         y_t, y_v_raw = df.iloc[train_idx]['FTR'], df.iloc[test_idx]['FTR']  # Use raw FTR (strings)
-        
-        model.fit(X_t, y_t)  # Fit on raw (model handles strings)
+
+        # Build per-fold division weights
+        div_t = df.iloc[train_idx]['Division']
+        div_counts = div_t.value_counts()
+        w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()
+        w_t = div_t.map(w_div_map).astype(float).values
+        w_t = np.nan_to_num(w_t, nan=1.0, posinf=1.0, neginf=1.0)
+        w_t = w_t / w_t.mean()
+        model.fit(X_t, y_t, clf__sample_weight=w_t)
+
         y_p_raw = model.predict(X_v)  # Predictions as strings
         
         # Map to numeric for metrics
@@ -120,10 +136,16 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     print(f"CV Acc ({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
     print(f"CV Draw Recall: {np.mean(cv_draw_recall):.3f} ± {np.std(cv_draw_recall):.3f}")
 
-
+    div_train = df.loc[X_train.index, 'Division']
+    div_counts = div_train.value_counts()
+    w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()
+    w_train = div_train.map(w_div_map).astype(float).values
+    w_train = np.nan_to_num(w_train, nan=1.0, posinf=1.0, neginf=1.0)
+    w_train = w_train / w_train.mean()
 
     #Full train/test
-    model.fit(X_train, y_train)
+    model.fit(X_train, y_train, clf__sample_weight=w_train)
+    #model.fit(X_train, y_train) # old  
 
     # Predict
     y_pred = model.predict(X_test)

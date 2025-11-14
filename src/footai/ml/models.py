@@ -6,8 +6,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.calibration import CalibratedClassifierCV
-#from xgboost import XGBClassifier
-#from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 import warnings
 # Suppress LightGBM feature name warnings (sklearn 1.0+ issue)
 warnings.filterwarnings(
@@ -103,7 +103,38 @@ def get_models(args):
                                            class_weight="balanced"
                                         ))
         ]),
-        '''
+
+        "rf_cal": Pipeline([
+            ("sanitize", sanitize),                    # replace ±inf with NaN
+            ("impute", SimpleImputer(strategy="median")),  # handle NaN
+            ("scaler", "passthrough"),  # trees don"t need scaling
+            ("clf", CalibratedClassifierCV(
+                estimator=RandomForestClassifier(
+                    n_estimators=n_estimators,
+                    max_depth=max_depth,
+                    min_samples_split=0.02,
+                    min_samples_leaf=0.01,
+                    max_samples=max_samples,
+                    max_features=max_features,
+                    random_state=42,
+                    n_jobs=-1,
+                    class_weight="balanced"
+                ),
+                method='sigmoid',
+                cv=3
+            ))
+        ]),
+        'gb': Pipeline([
+        ("clf", GradientBoostingClassifier(
+            n_estimators=50,
+            max_depth=3,
+            learning_rate=0.01,
+            subsample=0.5,
+            validation_fraction=0.2,
+            n_iter_no_change=10,
+            random_state=42
+        ))
+    ]),
         # XGBoost - same pipeline structure
         "xgb": Pipeline([
             ("sanitize", sanitize),
@@ -148,39 +179,6 @@ def get_models(args):
                 verbose=-1  # Suppress training logs
             ))
         ]),
-        '''
-
-        "rf_cal": Pipeline([
-            ("sanitize", sanitize),                    # replace ±inf with NaN
-            ("impute", SimpleImputer(strategy="median")),  # handle NaN
-            ("scaler", "passthrough"),  # trees don"t need scaling
-            ("clf", CalibratedClassifierCV(
-                estimator=RandomForestClassifier(
-                    n_estimators=n_estimators,
-                    max_depth=max_depth,
-                    min_samples_split=0.02,
-                    min_samples_leaf=0.01,
-                    max_samples=max_samples,
-                    max_features=max_features,
-                    random_state=42,
-                    n_jobs=-1,
-                    class_weight="balanced"
-                ),
-                method='isotonic',
-                cv=3
-            ))
-        ]),
-        'gb': Pipeline([
-        ("clf", GradientBoostingClassifier(
-            n_estimators=50,
-            max_depth=3,
-            learning_rate=0.01,
-            subsample=0.5,
-            validation_fraction=0.2,
-            n_iter_no_change=10,
-            random_state=42
-        ))
-    ])
     }
     return models
 

@@ -95,7 +95,7 @@ def main():
         if args.multi_division:            
             combined_features = combine_divisions_features(args.country, divisions, seasons, dirs, args)
             
-            results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2)            
+            results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2, args=args)            
         elif args.multi_season:
             for division in divisions:
                 features_csv = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)

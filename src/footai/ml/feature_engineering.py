@@ -462,7 +462,6 @@ def combine_divisions_features(country, divisions, seasons, dirs, args):
         all_dfs.append(df)
         
         print(f"Loaded {len(df)} matches from {division}")
-    
     if not all_dfs:
         raise ValueError(f"No feature files found for divisions: {divisions}")
     

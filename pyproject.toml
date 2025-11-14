@@ -10,7 +10,9 @@ dependencies = [
     "plotly",
     "requests",
     "dash",
-    "scikit-learn"
+    "scikit-learn",
+    "xgboost",
+    "lightgbm"
 ]
 
 [project.optional-dependencies]
