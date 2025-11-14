@@ -1,6 +1,8 @@
+import json
 import pandas as pd
 import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
+from datetime import datetime
+from sklearn.metrics import confusion_matrix
 
 
 def print_results_summary(all_results,divisions):
@@ -62,14 +64,14 @@ def print_results_summary(all_results,divisions):
             print("="*70)
 
 
-
-def print_confusion(y_test, y_pred, feature_set, cm):
+def print_classification(y_test, y_pred, feature_set, class_report):
     print("\n" + "-"*70)
     print("Classification Report:")
     print("-"*70)
-    print(classification_report(y_test, y_pred, labels=['H','D','A'], zero_division=0))
-
+    print(class_report)
     print("-"*70)
+
+def print_confusion(y_test, y_pred, feature_set, cm):
     print(f"Confusion Matrix ({feature_set}):")
     print("-"*70)
     print("         Predicted")
@@ -124,3 +126,35 @@ def print_feature_importance(model, feature_cols, feature_set):
     print(f"Feature Importance ({feature_set}, Top 10):")
     print("-"*70)
     print(importance_df.head(30).to_string(index=False))
+
+
+def write_metrics_json(json_path, country, divisions, feature_set, results, seasons):
+    """Write structured training metrics to JSON."""
+    metrics = {
+        'country': country,
+        'divisions': divisions,
+        'seasons': seasons,
+        'feature_set': feature_set,
+        'model': 'rf',
+        'timestamp': datetime.now().isoformat(),
+        'accuracy': float(results['accuracy']),
+        # Per-class metrics
+        'home_precision': float(results.get('home_precision', 0)),
+        'home_recall': float(results.get('home_recall', 0)),
+        'home_f1': float(results.get('home_f1', 0)),
+        'draw_precision': float(results.get('draw_precision', 0)),
+        'draw_recall': float(results.get('draw_recall', 0)),
+        'draw_f1': float(results.get('draw_f1', 0)),
+        'away_precision': float(results.get('away_precision', 0)),
+        'away_recall': float(results.get('away_recall', 0)),
+        'away_f1': float(results.get('away_f1', 0)),
+    }
+    
+    if 'cv_accuracy_mean' in results:
+        metrics['cv_accuracy_mean'] = float(results['cv_accuracy_mean'])
+        metrics['cv_accuracy_std'] = float(results['cv_accuracy_std'])
+        metrics['cv_draw_recall_mean'] = float(results.get('cv_draw_recall_mean', 0))
+        metrics['cv_draw_recall_std'] = float(results.get('cv_draw_recall_std', 0))
+    
+    with open(json_path, 'w') as f:
+        json.dump(metrics, f, indent=2)

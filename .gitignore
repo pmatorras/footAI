@@ -4,6 +4,7 @@ __pycache__/
 
 # Data & outputs (large files)
 data/
+results/
 figures/
 models/
 # IDE

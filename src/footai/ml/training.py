@@ -10,11 +10,11 @@ import numpy as np
 import joblib
 from pathlib import Path
 from sklearn.model_selection import train_test_split, TimeSeriesSplit
-from sklearn.metrics import confusion_matrix, accuracy_score, recall_score
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 
 from footai.ml.models import get_models
 from footai.utils.config import select_features
-from footai.ml.evaluation import print_confusion, print_per_division, print_feature_importance
+from footai.ml.evaluation import print_classification, print_confusion, print_per_division, print_feature_importance
 
 
 
@@ -156,10 +156,22 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     accuracy = accuracy_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
+    # Calculate per-class metrics from confusion matrix
+    # cm[i,j] = true label i, predicted label j
+    home_precision = cm[0,0] / cm[:,0].sum() if cm[:,0].sum() > 0 else 0
+    home_recall = cm[0,0] / cm[0,:].sum() if cm[0,:].sum() > 0 else 0
+    draw_precision = cm[1,1] / cm[:,1].sum() if cm[:,1].sum() > 0 else 0
+    draw_recall = cm[1,1] / cm[1,:].sum() if cm[1,:].sum() > 0 else 0
+    away_precision = cm[2,2] / cm[:,2].sum() if cm[:,2].sum() > 0 else 0
+    away_recall = cm[2,2] / cm[2,:].sum() if cm[2,:].sum() > 0 else 0
+
+    report = classification_report(y_test, y_pred, labels=['H','D','A'], zero_division=0)
+
     print(f"Test Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
 
     if stats:
         print(f"Features used: {feature_cols if verbose else (len(feature_cols))}")
+        print_classification(y_test=y_test, y_pred=y_pred, feature_set=feature_set, class_report=report)
         print_confusion(y_test=y_test, y_pred=y_pred, feature_set=feature_set, cm=cm)
         if 'Division' in df.columns:
             df_test = df.iloc[-len(y_test):].copy()
@@ -167,6 +179,29 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
             print_per_division(df_test, pred_col='Prediction')
         print_feature_importance(model, feature_cols, feature_set)
 
+    results = {
+        'model': model,
+        'X_test': X_test,
+        'y_test': y_test,
+        'y_pred': y_pred,
+        'y_pred_proba': y_pred_proba,
+        'feature_names': feature_cols,
+        'accuracy': accuracy,
+        'confusion_matrix': cm,
+        # CV stats
+        'cv_accuracy_mean': np.mean(cv_acc),
+        'cv_accuracy_std': np.std(cv_acc),
+        'cv_draw_recall_mean': np.mean(cv_draw_recall),
+        'cv_draw_recall_std': np.std(cv_draw_recall),
+
+        #Per class metrics
+        'home_precision': home_precision,
+        'home_recall': home_recall,
+        'draw_precision': draw_precision,
+        'draw_recall': draw_recall,
+        'away_precision': away_precision,
+        'away_recall': away_recall,
+    }
     # Save model if requested
     if save_model:
         save_path = Path(save_model)
@@ -175,16 +210,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         if verbose:
             print(f"\nModel saved to: {save_path}")
 
-    return {
-        'model': model,
-        'X_test': X_test,
-        'y_test': y_test,
-        'y_pred': y_pred,
-        'y_pred_proba': y_pred_proba,
-        'feature_names': feature_cols,
-        'accuracy': accuracy,
-        'confusion_matrix': cm
-    }
+    return results
 
 
 def predict_match(model, home_features, away_features, feature_names):
