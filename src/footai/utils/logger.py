@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from contextlib import contextmanager
-
+from footai.utils.paths import format_season_list 
 
 class TeeLogger:
     """Prints to stdout and a file simultaneously."""
@@ -58,7 +58,7 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', multi
     try:
         # Print header
         print("="*70)
-        print(f"TRAINING: {divisions} ({seasons})")
+        print(f"TRAINING: {divisions} ({format_season_list(seasons)})")
         print("-"*70)        
         print(f"Feature set: {feature_set}, Model: {model}")
         print(f"Timestamp: {datetime.now().isoformat()}")

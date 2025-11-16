@@ -59,12 +59,13 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
 
     # Extract team's matches
     team_matches = team_matches_rows(df, team_name=team_name)
-    team_df = pd.DataFrame(team_matches).sort_values('date').reset_index(drop=True)
+    date_col = 'Date' if 'Date' in team_matches[0] else 'date'
+    team_df = pd.DataFrame(team_matches).sort_values(date_col).reset_index(drop=True)
 
     # Calculate rolling features
     features = {}
     for i in range(len(team_df)):
-        match_date = team_df.iloc[i]['date']
+        match_date = team_df.iloc[i][date_col]
 
         if i < 1:
             # First match - no history
@@ -306,6 +307,14 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], verbos
         print("Starting feature engineering...")
 
     # Prepare data
+    df = df[
+        df['HomeTeam'].notna() &
+        df['AwayTeam'].notna() &
+        (df['HomeTeam'].astype(str).str.strip().str.lower() != 'nan') &
+        (df['AwayTeam'].astype(str).str.strip().str.lower() != 'nan') &
+        (df['HomeTeam'].astype(str).str.strip() != '') &
+        (df['AwayTeam'].astype(str).str.strip() != '')
+    ].copy()
     enriched_df = df.copy()
     enriched_df['Date'] = pd.to_datetime(enriched_df['Date'])
     enriched_df = enriched_df.sort_values('Date').reset_index(drop=True)

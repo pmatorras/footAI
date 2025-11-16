@@ -68,3 +68,4 @@ test_multi: elo_multi plot_multi
 test_elo: elo plot
 
 pipeline: download promotion elo features train
+test_ranges: elo features train

@@ -79,24 +79,121 @@ def parse_start_years(years_str):
     """
     Parse season start years and convert to season codes.
     
-    Takes comma-separated years and converts each to a compact season format.
-    Supports both 4-digit (2024) and 2-digit (24) formats.
+    Supports:
+    - Ranges: '15-24' → ['15','16',...,'24']  (NEW!)
+    - Individual: '22,23,24' → ['22','23','24']
+    - Mixed: '15-20,23,24' → ['15','16',...,'20','23','24']  (NEW!)
+    
+    Also handles 4-digit years (2024 → '2425') for backward compatibility.
     
     Args:
-        seasons_str: Comma-separated years (e.g., "2024,2025" or "23,24")
+        years_str: Comma-separated years, with optional ranges
+                   (e.g., "2024,2025" or "22-24" or "15-24")
     
     Returns:
-        List of season codes (e.g., ['2425', '2526'])
+        List of season codes (e.g., ['2223', '2324', '2425'])
     """
-    years = []
-    for year_str in years_str.split(','):
-        year_str = year_str.strip()
-        year = int(year_str)
-        
-        # If 2-digit year, expand to 20xx
-        if year < 100:
-            year = 2000 + year
-        
-        years.append(year_to_season_code(year))
+    seasons = []
     
-    return years
+    for part in years_str.split(','):
+        part = part.strip()
+        
+        if not part:
+            continue
+        
+        # Handle range (e.g., '22-24')
+        if '-' in part:
+            try:
+                start, end = part.split('-')
+                start_year = int(start)
+                end_year = int(end)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid season range format: '{part}'. "
+                    f"Expected format: '15-24' or '2015-2024'"
+                )
+            
+            # Validate range
+            if start_year > end_year:
+                raise ValueError(
+                    f"Invalid season range: '{part}'. "
+                    f"Start year must be <= end year"
+                )
+            
+            # Handle both 2-digit and 4-digit years
+            if start_year < 100:
+                start_year = 2000 + start_year
+            if end_year < 100:
+                end_year = 2000 + end_year
+            
+            # Expand range
+            for year in range(start_year, end_year + 1):
+                seasons.append(year_to_season_code(year))
+        
+        else:
+            # Single year (existing logic - backward compatible)
+            year = int(part)
+            
+            # If 2-digit year, expand to 20xx
+            if year < 100:
+                year = 2000 + year
+            
+            seasons.append(year_to_season_code(year))
+    
+    if not seasons:
+        raise ValueError(
+            "No seasons provided. Expected format: '22-24' or '22,23,24'"
+        )
+    
+    return seasons
+
+
+# At the bottom of src/footai/utils/paths.py
+
+def format_season_list(seasons):
+    """
+    Format a list of season codes for readable display.
+    
+    Converts sequential seasons to ranges:
+    - ['2223','2324','2425'] → '2022-2025'
+    - ['2223','2324','2526'] → '2022-2024, 2025-2026'
+    
+    Args:
+        seasons (list[str]): List of season codes (e.g., ['2223', '2324'])
+    
+    Returns:
+        str: Compact string representation (e.g., '2022-2025')
+    
+    Example:
+        >>> format_season_list(['2223','2324','2425'])
+        '2022-2025'
+        
+        >>> format_season_list(['2223','2324','2526'])
+        '2022-2024, 2025-2026'
+    """
+    if not seasons:
+        return ''
+    
+    # Convert season codes to start years (2223 → 2022)
+    years = sorted([2000 + int(s[:2]) for s in seasons])
+    
+    # Group consecutive years into ranges
+    ranges = []
+    start = years[0]
+    prev = years[0]
+    
+    for curr in years[1:] + [None]:
+        if curr is None or curr != prev + 1:
+            # End of range found
+            if start == prev:
+                ranges.append(str(start))
+            else:
+                ranges.append(f"{start}-{prev+1}")  # End year is prev+1 (season end)
+            
+            if curr is not None:
+                start = curr
+        
+        if curr is not None:
+            prev = curr
+    
+    return ', '.join(ranges)

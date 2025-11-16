@@ -14,7 +14,7 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 
 from footai.ml.models import get_models
 from footai.utils.config import select_features
-from footai.ml.evaluation import print_classification, print_confusion, print_per_division, print_feature_importance
+from footai.ml.evaluation import print_cv_strategy, print_classification, print_confusion, print_per_division, print_feature_importance
 
 
 
@@ -23,6 +23,20 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
                          save_model=None, args=None):
     """
     Train baseline Random Forest model for match outcome prediction.
+
+    Uses expanding-window time series cross-validation (3 folds) to handle 
+    tactical evolution and prevent lookahead bias:
+    - Fold 1: Train on earliest ~33% → Test on next ~22%
+    - Fold 2: Train on earliest ~56% → Test on next ~22%
+    - Fold 3: Train on earliest ~78% → Test on final ~22%
+    
+    This mimics production deployment where the model learns from all 
+    historical data and naturally downweights old tactical patterns.
+    
+    Example for 10 seasons (2015-2025):
+        Fold 1: Train 2015-2018 → Test 2018-2020
+        Fold 2: Train 2015-2020 → Test 2020-2022
+        Fold 3: Train 2015-2022 → Test 2022-2025
 
     Args:
         features_csv: Path to features CSV (output from feature_engineering)
@@ -47,15 +61,23 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     if verbose:
         print(f"Loading features from: {features_csv}")
 
-    df = pd.read_csv(features_csv)
+    df = pd.read_csv(features_csv, low_memory=False)
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.sort_values('Date')
 
     if verbose:
         print(f"Loaded {len(df)} matches")
 
+    print_cv_strategy(df, n_splits=3)
+
     # Select features
     feature_cols = select_features(df, feature_set)
+    print(f"\nFeature check:")
+    for idx, col in enumerate(feature_cols):
+        missing_pct = df[col].isna().sum() / len(df) * 100
+        if missing_pct> 30 or args.verbose: print(f"  [{idx}] {col}: {missing_pct:.1f}% missing")
+        if missing_pct == 100:
+            print(f"      ^^^^ COMPLETELY EMPTY!")
     if 'is_tier1' in df.columns:
         if verbose: print(f"  Adding division features: is_tier1, division_tier")
         feature_cols = feature_cols + ['is_tier1', 'division_tier']
@@ -90,7 +112,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     model = models[args.model] #baseline for first attemps
 
     if verbose:
-        print("\nTraining Random Forest...")
+        print(f"\nTraining {model}...")
 
 
     #check CV via timeseries
@@ -100,10 +122,9 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     use_div_weights = ('Division' in df.columns) and (df['Division'].nunique() > 1)
 
-    # TimeSeriesSplit as you have
-    for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
-        X_t, X_v = df.iloc[train_idx][feature_cols], df.iloc[test_idx][feature_cols]
-        y_t, y_v_raw = df.iloc[train_idx]['FTR'], df.iloc[test_idx]['FTR']  # Use raw FTR (strings)
+    for fold, (train_idx, test_idx) in enumerate(tscv.split(X)):
+        X_t, X_v = X.iloc[train_idx], X.iloc[test_idx]
+        y_t, y_v_raw = y.iloc[train_idx], y.iloc[test_idx]
         
         if use_div_weights:
             # Build per-fold division weights
@@ -134,7 +155,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         cv_draw_recall.append(fold_draw_recall)
         print(f"Fold {fold+1} Acc: {fold_acc:.3f}, Draw Recall: {fold_draw_recall:.3f}")
 
-    print(f"CV Acc ({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
+    print(f"CV Acc average({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
     print(f"CV Draw Recall: {np.mean(cv_draw_recall):.3f} ± {np.std(cv_draw_recall):.3f}")
 
     if use_div_weights:
@@ -154,7 +175,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     y_pred_proba = model.predict_proba(X_test)
 
 
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = cv_acc[-1]
     cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
     # Calculate per-class metrics from confusion matrix
     # cm[i,j] = true label i, predicted label j

@@ -4,6 +4,36 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
+def print_cv_strategy(df, n_splits=3):
+    """Print expanding-window CV strategy for documentation."""
+    from sklearn.model_selection import TimeSeriesSplit
+    
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    
+    print("\n" + "="*70)
+    print("EXPANDING-WINDOW TIME SERIES CROSS-VALIDATION")
+    print("="*70)
+    
+    for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
+        train_dates = df.iloc[train_idx]['Date'].dropna()  # NEW: Drop NaT
+        test_dates = df.iloc[test_idx]['Date'].dropna()    # NEW: Drop NaT
+        
+        # Check if we have valid dates
+        if len(train_dates) == 0 or len(test_dates) == 0:
+            print(f"Fold {fold+1}: Skipping (missing dates)")
+            continue
+        
+        train_start = train_dates.min().strftime('%Y-%m')
+        train_end = train_dates.max().strftime('%Y-%m')
+        test_start = test_dates.min().strftime('%Y-%m')
+        test_end = test_dates.max().strftime('%Y-%m')
+        
+        print(f"Fold {fold+1}: Train {train_start} to {train_end} ({len(train_idx):>4} matches) "
+              f"→ Test {test_start} to {test_end} ({len(test_idx):>3} matches)")
+    
+    print("="*70 + "\n")
+
+
 
 def print_results_summary(all_results,divisions):
     '''

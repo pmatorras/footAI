@@ -1,7 +1,7 @@
 import requests
 from footai.utils.config import DATA_DIR
 
-def download_football_data(season_str, division, filepath=DATA_DIR):
+def download_football_data(season, division, filepath=DATA_DIR):
     """
     Download football match data from football-data.co.uk
     
@@ -14,7 +14,7 @@ def download_football_data(season_str, division, filepath=DATA_DIR):
     - tuple: (filepath, success_bool, message)
     """
     # Build the URL
-    url = f"https://www.football-data.co.uk/mmz4281/{season_str}/{division}.csv"
+    url = f"https://www.football-data.co.uk/mmz4281/{season}/{division}.csv"
     
     print(f"URL: {url}")
     print(f"Output: {filepath}")
@@ -24,8 +24,11 @@ def download_football_data(season_str, division, filepath=DATA_DIR):
         
         if response.status_code == 200:
             #Remove byte order mark
-            content = response.content.decode('utf-8-sig')
-            
+            try:
+                content = response.content.decode('utf-8-sig')
+            except UnicodeDecodeError:
+                content = response.content.decode('latin-1')
+                print(f"Note: Used Latin-1 encoding for {division} {season}")            
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)
             
