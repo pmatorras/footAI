@@ -25,7 +25,7 @@ class TeeLogger:
 
 
 @contextmanager
-def log_training_run(country, divisions, feature_set, seasons, model='rf', results_dir='results'):
+def log_training_run(country, divisions, feature_set, seasons, model='rf', multidiv=False, results_dir='results'):
     """
     Context manager for logging training runs to file.
     
@@ -41,7 +41,7 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', resul
         Path: JSON file path for writing structured metrics
     """
     timestamp = datetime.now().strftime('%Y%m%d')
-    div_str = country+"_multidiv" if isinstance(divisions, list) else str(divisions)
+    div_str = country+"_multidiv" if multidiv else str(divisions)
     season_str = f"{seasons[0]}_to_{seasons[-1]}" if len(seasons) > 1 else seasons[0]
     
     out_dir = Path(results_dir) / country
