@@ -22,14 +22,14 @@ def execute(seasons, divisions, args, dirs):
     all_results={}
     if args.multi_division:  
         combined_features = combine_divisions_features(args.country, divisions, seasons, dirs, args)
-        with log_training_run(args.country, divisions, args.features_set, seasons) as json_path:   
+        with log_training_run(args.country, divisions, args.features_set, seasons, args.model, multidiv=True) as json_path:   
             results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2, save_model=f"models/{args.country}/{args.country}_multidiv_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl", args=args)
             write_metrics_json(json_path, args.country, divisions, args.features_set, results, seasons)
 
     elif args.multi_season:
         for division in divisions:
             features_csv = get_multiseason_path(dirs['feat'], division, seasons[0], seasons[-1], args)
-            with log_training_run(args.country, [division], args.features_set, seasons) as json_path:
+            with log_training_run(args.country, division, args.features_set, seasons, args.model) as json_path:
                 # Train baseline model
                 results = train_baseline_model( features_csv, feature_set=args.features_set, test_size=0.2, save_model=f"models/{args.country}/{args.model}_{division}_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl",args=args)
                 all_results[division] = results['accuracy']
@@ -45,7 +45,7 @@ def execute(seasons, divisions, args, dirs):
                     # Train baseline model
                     results = train_baseline_model( paths['feat'], feature_set="baseline", test_size=0.2, save_model=f"models/{args.country}/{season}_{division}_baseline_rf.pkl",args=args)
                     all_results[season][division] = results['accuracy']
-                    write_metrics_json(json_path, args.country, [division], args.features_set, results, [season])
+                    write_metrics_json(json_path, args.country, division, args.features_set, results, season)
 
 
         print_results_summary(all_results, divisions)
