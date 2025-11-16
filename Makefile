@@ -11,58 +11,60 @@ MULTI_DIVISION := $(if $(MULTI_DIVISION_FLAG),$(MULTI_DIVISION_FLAG),$(MULTI_DIV
 PYTHON_FLAGS = $(if $(filter $(VERBOSE),yes true 1),-v,)
 MULTI_DIV_FLAG = $(if $(filter $(MULTI_DIVISION),yes true 1),--multi-division,)
 COUNTRY ?= SP
-DIVISION ?= SP1,SP2
 SEASON_START ?= 22,23,24
 FEATURES_SET ?= baseline
 MODEL ?= rf
 
+# Optional: Allow overriding if needed
+DIV_FLAG = $(if $(DIVISION),--div $(DIVISION),)
+
 download:
-	footai download --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)
+	footai download --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START)
 
 promotion:
-	footai promotion-relegation --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m $(PYTHON_FLAGS)
-
+	footai promotion-relegation --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer -m $(PYTHON_FLAGS)
 
 elo:
-	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(PYTHON_FLAGS)
+	footai elo --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(PYTHON_FLAGS)
 
 elo_multi: 
-	footai elo --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
+	footai elo --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
 
 features_multi:
-	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -v -m
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -v -m
 
 features_nomulti:
-	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -v 
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -v 
 
 features:
-	footai features --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -v
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer -v
 
 prepare_train: promotion elo features
 prepare_train_multi: promotion elo_multi features_multi
 
 train: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG)  --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set $(FEATURES_SET) $(PYTHON_FLAGS)
 
 train_multi: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START)  --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)
-
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --features-set $(FEATURES_SET) -m $(PYTHON_FLAGS)
 
 train_options: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set draw_optimized --model $(MODEL) -m $(PYTHON_FLAGS)
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set extended --model $(MODEL) -m $(PYTHON_FLAGS)
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set baseline --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set draw_optimized --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set extended --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(MULTI_DIV_FLAG) --features-set baseline --model $(MODEL) -m $(PYTHON_FLAGS)
 
 train_multi_options: 
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set draw_optimized --model $(MODEL) -m $(PYTHON_FLAGS)
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set extended --model $(MODEL) -m $(PYTHON_FLAGS)
-	footai train --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set baseline --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set draw_optimized --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set extended --model $(MODEL) -m $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(MULTI_DIV_FLAG) --features-set baseline --model $(MODEL) -m $(PYTHON_FLAGS)
 
 plot:
-	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) --elo-transfer  -m 
+	footai plot --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer -m 
 
 plot_multi:
-	footai plot --country $(COUNTRY) --div $(DIVISION) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
+	footai plot --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
 
 test_multi: elo_multi plot_multi
 test_elo: elo plot
+
+pipeline: download promotion elo features train

@@ -1,6 +1,6 @@
 """Command-line interface setup."""
 import argparse
-from footai.utils.config import COUNTRIES, RAW_DIR, PROCESSED_DIR, FEATURES_DIR
+from footai.utils.config import COUNTRIES, RAW_DIR, PROCESSED_DIR, FEATURES_DIR, FEATURE_SETS
 from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
 
 def create_parser():
@@ -30,12 +30,12 @@ def create_parser():
 
     for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
-        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=["SP1"], help='League division (default: SP1)')
+        sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=None, help='League division (default: First two tiers for given country)')
         sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
         sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--features-dir', type=str, default=FEATURES_DIR, help='Directory to save CSV files (default: football_data)')
-        sp.add_argument( '--features-set', type=str, default='baseline', help='Set of features to train on. default baseline', choices=["baseline", "extended", "draw_optimized", "all"]) 
+        sp.add_argument( '--features-set', type=str, default='baseline', help='Set of features to train on. default baseline', choices=FEATURE_SETS.keys()) 
         sp.add_argument( '--model', type=str, default='rf', help='Model to run', choices=["rf", "rf_cal", "gb"])       
         sp.add_argument("-m", "--multi-season", action="store_true", help="Calculate over multiple seasons")
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")

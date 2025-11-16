@@ -7,6 +7,20 @@ PROCESSED_DIR = DATA_DIR / 'processed'
 FEATURES_DIR  = DATA_DIR / 'features'
 FIG_DIR       = ROOT_DIR / 'figures'
 
+def setup_directories(args):
+    '''Create dictionary with directories and ensure they exist'''
+    dirs = {
+        'raw'  : args.raw_dir / args.country,
+        'proc' : args.processed_dir / args.country,
+        'feat' : args.features_dir / args.country,
+        'fig'  : FIG_DIR
+
+    }
+    for dir in dirs.keys():
+        if args.verbose: print("creating", dirs[dir])
+        Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
+    return dirs
+
 COUNTRIES = {
     "SP" : {
         "name" : "Spain",
@@ -65,20 +79,27 @@ DRAW_FEATURES = EXTENDED_FEATURES + [
     'draw_prob_consensus', 'draw_prob_dispersion', 'under_2_5_prob', 'under_2_5_zscore',
     'abs_elo_diff', 'elo_diff_sq', 'low_elo_diff', 'medium_elo_diff', 'abs_odds_prob_diff',
     'abs_ahh', 'ahh_zero', 'ahh_flat', 'min_shots_l5', 'min_shot_acc_l5', 'min_goals_scored_l5',
-    #'home_draw_rate_l10', 'away_draw_rate_l10', #Currently broken
+    'home_draw_rate_l10', 'away_draw_rate_l10',
     'league_draw_bias'] 
 TOP_DRAW_FEATURES = EXTENDED_FEATURES + [
     'draw_prob_consensus', 'abs_odds_prob_diff', 'under_2_5_prob', 
     'draw_prob_dispersion', 'abs_elo_diff', 'under_2_5_zscore', 'elo_diff_sq',
     'min_shot_acc_l5', 'min_shots_l5', 'abs_ahh'  
 ]
-
+EXTENDED_LITE_FEATURES = BASELINE_FEATURES + [
+    'draw_prob_consensus',
+    'under_2_5_prob',
+    'asian_handicap_diff',
+    'draw_prob_dispersion',
+    'odds_draw_prob_norm',
+]
 # Registry for cleaner lookup
 FEATURE_SETS = {
     'baseline': BASELINE_FEATURES,
     'extended': EXTENDED_FEATURES,
     'draw_features': DRAW_FEATURES,
     'draw_optimized': TOP_DRAW_FEATURES,
+    'draw_lite': EXTENDED_LITE_FEATURES,
 }
 
 EXCLUDE_COLS = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
@@ -104,20 +125,19 @@ def select_features(df, feature_set="baseline"):
     
     return [col for col in FEATURE_SETS[feature_set] if col in df.columns]
 
-def setup_directories(args):
-    '''Create dictionary with directories and ensure they exist'''
-    dirs = {
-        'raw'  : args.raw_dir / args.country,
-        'proc' : args.processed_dir / args.country,
-        'feat' : args.features_dir / args.country,
-        'fig'  : FIG_DIR
-
-    }
-    for dir in dirs.keys():
-        if args.verbose: print("creating", dirs[dir])
-        Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
-    return dirs
 
 
+def get_default_divisions(country):
+    """
+    Get first two divisions for a country (Tier 1 + Tier 2).
+    
+    Args:
+        country: Country code (e.g., 'SP', 'EN', 'IT')
+    
+    Returns:
+        List of division codes (e.g., ['SP1', 'SP2'] for Spain)
+    """
+    divisions = list(COUNTRIES[country]['divisions'].keys())
+    return divisions[:2]  # First two tiers
 
 

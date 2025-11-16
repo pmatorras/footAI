@@ -128,14 +128,14 @@ def print_feature_importance(model, feature_cols, feature_set):
     print(importance_df.head(30).to_string(index=False))
 
 
-def write_metrics_json(json_path, country, divisions, feature_set, results, seasons):
+def write_metrics_json(json_path, country, divisions, feature_set, results, seasons, model='rf'):
     """Write structured training metrics to JSON."""
     metrics = {
         'country': country,
         'divisions': divisions,
         'seasons': seasons,
         'feature_set': feature_set,
-        'model': 'rf',
+        'model': model,
         'timestamp': datetime.now().isoformat(),
         'accuracy': float(results['accuracy']),
         # Per-class metrics
@@ -155,6 +155,6 @@ def write_metrics_json(json_path, country, divisions, feature_set, results, seas
         metrics['cv_accuracy_std'] = float(results['cv_accuracy_std'])
         metrics['cv_draw_recall_mean'] = float(results.get('cv_draw_recall_mean', 0))
         metrics['cv_draw_recall_std'] = float(results.get('cv_draw_recall_std', 0))
-    print("File saved to:", json_path)
+
     with open(json_path, 'w') as f:
         json.dump(metrics, f, indent=2)
