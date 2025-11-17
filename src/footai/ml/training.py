@@ -4,7 +4,7 @@ ML Model Training for Football Match Prediction
 
 Simple baseline implementation for footAI v0.2
 """
-
+import warnings
 import pandas as pd
 import numpy as np
 import joblib
@@ -78,6 +78,13 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         if missing_pct> 30 or args.verbose: print(f"  [{idx}] {col}: {missing_pct:.1f}% missing")
         if missing_pct == 100:
             print(f"      ^^^^ COMPLETELY EMPTY!")
+        # Suppress known sklearn imputation warning
+        # under_2_5_prob has missing values in older seasons due to incomplete odds data
+        # Random Forest handles NaN values natively, so this is safe
+        warnings.filterwarnings('ignore', 
+            message='Skipping features without any observed values.*',
+            category=UserWarning,
+            module='sklearn')
     if 'is_tier1' in df.columns:
         if verbose: print(f"  Adding division features: is_tier1, division_tier")
         feature_cols = feature_cols + ['is_tier1', 'division_tier']
@@ -94,14 +101,8 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     assert not X.empty, "Feature DataFrame is empty!"
     assert len(X) == len(y), "Mismatch in features and targets length"
 
-    # Temporal split (train on earlier matches)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, shuffle=False  # No shuffle for temporal order
-    )
 
     if verbose:
-        print(f"\nTrain: {len(X_train)} matches")
-        print(f"Test:  {len(X_test)} matches")
         print(f"\nTarget distribution (full dataset):")
         print(y.value_counts().to_string())
         print(f"\nTarget distribution (normalized):")
@@ -121,6 +122,10 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     label_map = {'H': 0, 'D': 1, 'A': 2}  
 
     use_div_weights = ('Division' in df.columns) and (df['Division'].nunique() > 1)
+    final_x_test = None
+    final_y_test = None    
+    final_y_pred = None
+    print("-"*70)
 
     for fold, (train_idx, test_idx) in enumerate(tscv.split(X)):
         X_t, X_v = X.iloc[train_idx], X.iloc[test_idx]
@@ -147,6 +152,10 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         else:
             y_v = y_v_raw
             y_p = y_p_raw
+        if fold == 2:  # Final fold (0-indexed)
+            final_x_test = X_v
+            final_y_test = y_v_raw
+            final_y_pred = y_p_raw
         
         fold_acc = accuracy_score(y_v, y_p)
         fold_draw_recall = recall_score(y_v, y_p, labels=[1], average=None, zero_division=0)[0]
@@ -158,22 +167,9 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     print(f"CV Acc average({feature_set}): {np.mean(cv_acc):.3f} ± {np.std(cv_acc):.3f}")
     print(f"CV Draw Recall: {np.mean(cv_draw_recall):.3f} ± {np.std(cv_draw_recall):.3f}")
 
-    if use_div_weights:
-        #mimic fold structure
-        div_train = df.loc[X_train.index, 'Division']
-        div_counts = div_train.value_counts()
-        w_div_map = (div_counts.sum() / (len(div_counts) * div_counts)).to_dict()
-        w_train = div_train.map(w_div_map).astype(float).values
-        w_train = np.nan_to_num(w_train, nan=1.0, posinf=1.0, neginf=1.0)
-        w_train = w_train / w_train.mean()
-        model.fit(X_train, y_train, clf__sample_weight=w_train)
-    else:
-        model.fit(X_train, y_train)  
-
-    # Predict
-    y_pred = model.predict(X_test)
-    y_pred_proba = model.predict_proba(X_test)
-
+    y_test = final_y_test
+    y_pred = final_y_pred
+    y_pred_proba = model.predict_proba(X.iloc[test_idx])  # From last fold's test_idx
 
     accuracy = cv_acc[-1]
     cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
@@ -192,23 +188,61 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     if stats:
         print(f"Features used: {feature_cols if verbose else (len(feature_cols))}")
-        print_classification(y_test=y_test, y_pred=y_pred, feature_set=feature_set, class_report=report)
-        print_confusion(y_test=y_test, y_pred=y_pred, feature_set=feature_set, cm=cm)
-        if 'Division' in df.columns:
-            df_test = df.iloc[-len(y_test):].copy()
-            df_test['Prediction'] = y_pred
-            print_per_division(df_test, pred_col='Prediction')
-        print_feature_importance(model, feature_cols, feature_set)
+        print_classification(class_report=report)
+        print_confusion(feature_set=feature_set, cm=cm)
 
+    # Around line 186-190 in training.py, after print_per_division()
+    if 'Division' in df.columns:
+        df_test = df.iloc[-len(y_test):].copy()
+        df_test['Prediction'] = y_pred
+        if stats: print_per_division(df_test, pred_col='Prediction')
+        
+        # NEW: Capture per-division metrics for JSON
+        per_division_results = {}
+        for division in sorted(df_test['Division'].unique()):
+            div_data = df_test[df_test['Division'] == division]
+            
+            # Calculate accuracy
+            div_acc = (div_data['Prediction'] == div_data['FTR']).mean()
+            
+            # Calculate draw recall
+            div_draws = div_data['FTR'] == 'D'
+            if div_draws.sum() > 0:
+                div_draw_recall = (div_data.loc[div_draws, 'Prediction'] == 'D').sum() / div_draws.sum()
+            else:
+                div_draw_recall = 0.0
+            
+            n_matches = len(div_data)
+            
+            # Get confusion matrix
+            div_cm = confusion_matrix(div_data['FTR'], div_data['Prediction'], labels=['H','D','A'])
+            
+            per_division_results[division] = {
+                'accuracy': float(div_acc),
+                'draw_recall': float(div_draw_recall),
+                'n_matches': int(n_matches),
+                'confusion_matrix': {
+                    'labels': ['H', 'D', 'A'],
+                    'matrix': div_cm.tolist()
+                }
+            }
+    else:
+        per_division_results = None
+
+    feature_importance = print_feature_importance(model, feature_cols, feature_set, stats)
     results = {
         'model': model,
-        'X_test': X_test,
+        'X_test': final_x_test,
         'y_test': y_test,
         'y_pred': y_pred,
         'y_pred_proba': y_pred_proba,
         'feature_names': feature_cols,
         'accuracy': accuracy,
-        'confusion_matrix': cm,
+        'feature_importance': feature_importance.to_dict('records'),
+        'confusion_matrix': {
+            'labels': ['H', 'D', 'A'],
+            'matrix': cm.tolist()
+        },
         # CV stats
         'cv_accuracy_mean': np.mean(cv_acc),
         'cv_accuracy_std': np.std(cv_acc),
@@ -222,6 +256,8 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         'draw_recall': draw_recall,
         'away_precision': away_precision,
         'away_recall': away_recall,
+        # NEW: Per-division breakdown
+        'per_division': per_division_results  
     }
     # Save model if requested
     if save_model:
