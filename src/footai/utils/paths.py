@@ -10,7 +10,7 @@ def year_to_season_code(season):
         season = str(season)
     return season
 
-def get_season_paths(season, division, dirs, args):
+def get_season_paths(country, season, division, dirs, args):
     """
     Get file paths for a season/division combination.
     
@@ -22,10 +22,10 @@ def get_season_paths(season, division, dirs, args):
     else:
         suffix = ''
 
-    raw_path = get_data_loc(season, division, args.country, dirs['raw'], verbose=args.verbose)
-    elo_path = get_data_loc(season, division, args.country, dirs['proc'], file_type='elo', suffix=suffix, verbose=args.verbose)
-    feat_path = get_data_loc(season, division, args.country, dirs['feat'], suffix='_feat', verbose=args.verbose)
-    fig_path = get_data_loc(season, division, args.country, dirs['fig'], file_type='fig', suffix=suffix, verbose=args.verbose)
+    raw_path = get_data_loc(season, division, country, dirs[country]['raw'], verbose=args.verbose)
+    elo_path = get_data_loc(season, division, country, dirs[country]['proc'], file_type='elo', suffix=suffix, verbose=args.verbose)
+    feat_path = get_data_loc(season, division, country, dirs[country]['feat'], suffix='_feat', verbose=args.verbose)
+    fig_path = get_data_loc(season, division, country, dirs[country]['fig'], file_type='fig', suffix=suffix, verbose=args.verbose)
     
     return {
         'raw' : raw_path,
@@ -36,7 +36,7 @@ def get_season_paths(season, division, dirs, args):
 
 def get_promotion_relegation_file(dirs, country, season):
     '''A common promotion_relegation file path'''
-    promo_dir = Path(dirs['proc']) / "promotion"
+    promo_dir = Path(dirs[country]['proc']) / "promotion"
     promo_dir.mkdir(parents=True, exist_ok=True)
 
     return  promo_dir / f"{country}_{season}_promotion_relegation.csv"

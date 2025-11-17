@@ -29,7 +29,8 @@ elo:
 
 elo_multi: 
 	footai elo --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -m $(PYTHON_FLAGS)
-
+elo_nomulti: 
+	footai elo --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(PYTHON_FLAGS)
 features_multi:
 	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -v -m
 

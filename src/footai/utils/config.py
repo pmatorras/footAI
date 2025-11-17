@@ -9,16 +9,18 @@ FIG_DIR       = ROOT_DIR / 'figures'
 
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
-    dirs = {
-        'raw'  : args.raw_dir / args.country,
-        'proc' : args.processed_dir / args.country,
-        'feat' : args.features_dir / args.country,
-        'fig'  : FIG_DIR
+    dirs = {}
+    for country in args.countries:
+        dirs[country] = {
+            'raw'  : args.raw_dir / country,
+            'proc' : args.processed_dir / country,
+            'feat' : args.features_dir / country,
+            'fig'  : FIG_DIR
 
-    }
-    for dir in dirs.keys():
-        if args.verbose: print("creating", dirs[dir])
-        Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
+        }
+        for dir in dirs[country].keys():
+            if args.verbose: print("creating", dirs[country][dir])
+            Path(dirs[country][dir]).mkdir(parents=True, exist_ok=True)
     return dirs
 
 COUNTRIES = {
@@ -125,19 +127,91 @@ def select_features(df, feature_set="baseline"):
     
     return [col for col in FEATURE_SETS[feature_set] if col in df.columns]
 
+def parse_countries(country_arg):
+    """
+    Parse country argument into list of countries.
+    
+    Args:
+        country_arg: String like 'SP' or 'SP,IT' or 'SP IT'
+    
+    Returns:
+        List of country codes (e.g., ['SP'] or ['SP', 'IT'])
+        
+    Examples:
+        >>> parse_countries('SP')
+        ['SP']
+        >>> parse_countries('SP,IT')
+        ['SP', 'IT']
+        >>> parse_countries('SP IT')
+        ['SP', 'IT']
+    """
+
+    # Handle comma-separated or space-separated
+    if ',' in country_arg:
+        countries = [c.strip().upper() for c in country_arg.split(',')]
+    else:
+        countries = [c.strip().upper() for c in country_arg.split()]
+    
+    # Validate all countries exist
+    for c in countries:
+        if c not in COUNTRIES.keys():
+            raise ValueError(f"Unknown country code: {c}. Valid: {list(COUNTRIES.keys())}")
+    
+    return countries
 
 
-def get_default_divisions(country):
+def get_default_divisions(countries):
     """
     Get first two divisions for a country (Tier 1 + Tier 2).
     
     Args:
-        country: Country code (e.g., 'SP', 'EN', 'IT')
+        countries: Single country code string or list of country codes (e.g., 'SP' or ['SP', 'IT'])    
+    Returns:
+        Dictionary mapping country -> list of division codes
+        Example: 
+            {'SP': ['SP1', 'SP2']} for Spain
+            {'SP': ['SP1', 'SP2'], 'IT': ['I1', 'I2']} for Spain+Italy
+    """
+    # Handle single country string (backward compatibility)
+    if isinstance(countries, str):
+        countries = [countries]
+    
+    country_divisions = {}
+    for country in countries:
+        country_divs = list(COUNTRIES[country]['divisions'].keys())
+        country_divisions[country] = country_divs[:2]  # First two tiers per country
+    
+    return country_divisions
+
+def get_divisions_for_countries(countries, divisions):
+    """
+    Map specified divisions to their countries.
+    
+    Args:
+        countries: List of country codes (e.g., ['SP', 'IT'])
+        divisions: List of division codes (e.g., ['SP1', 'I1'])
     
     Returns:
-        List of division codes (e.g., ['SP1', 'SP2'] for Spain)
+        Dictionary mapping country -> list of divisions
+        Example: {'SP': ['SP1'], 'IT': ['I1']}
+    
+    Raises:
+        ValueError: If a division doesn't belong to any specified country
     """
-    divisions = list(COUNTRIES[country]['divisions'].keys())
-    return divisions[:2]  # First two tiers
-
-
+    country_divisions = {country: [] for country in countries}
+    
+    for division in divisions:
+        # Find which country this division belongs to
+        found = False
+        for country in countries:
+            if division in COUNTRIES[country]['divisions']:
+                country_divisions[country].append(division)
+                found = True
+                break
+        
+        if not found:
+            raise ValueError(
+                f"Division '{division}' doesn't belong to any specified country: {countries}"
+            )
+    
+    return country_divisions

@@ -142,7 +142,7 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
 
 
         for division in divisions:
-            paths = get_season_paths(season, division, dirs, args)
+            paths = get_season_paths(country, season, division, dirs, args)
             
             df = pd.read_csv(paths['raw'])
             df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
@@ -177,7 +177,7 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
             combined_df = combined_df.sort_values('Date').reset_index(drop=True)
             
             # Save with multi-season naming
-            multi_season_file = get_multiseason_path(dirs['proc'], division, seasons[0],seasons[-1], args)
+            multi_season_file = get_multiseason_path(dirs[country]['proc'], division, seasons[0],seasons[-1], args)
             combined_df.to_csv(multi_season_file, index=False)
             
             print(f"\nCombined multi-season file: {multi_season_file}")

@@ -31,7 +31,7 @@ def create_parser():
     for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default="2024")
         sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=None, help='League division (default: First two tiers for given country)')
-        sp.add_argument( '--country', type=str, default='SP', help='Country code (default: SP for Spain/La Liga)', choices=COUNTRIES.keys())
+        sp.add_argument( '--countries', '--country', dest='countries', type=str, default='SP', help='Country code(s). Can take single entry: eg (default: SP for Spain/La Liga) or multiple ones (eg SP,IT or SP IT for both Spanish and italian data)')
         sp.add_argument( '--raw-dir', type=str, default=RAW_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--features-dir', type=str, default=FEATURES_DIR, help='Directory to save CSV files (default: football_data)')

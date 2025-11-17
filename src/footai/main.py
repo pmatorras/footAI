@@ -1,6 +1,6 @@
 """Main execution logic for footAI commands."""
 from footai.cli.parser import create_parser
-from footai.utils.config import setup_directories, get_default_divisions
+from footai.utils.config import setup_directories, parse_countries, get_default_divisions, get_divisions_for_countries
 
 from footai.utils.paths import parse_start_years
 from footai.cli import download, promotion, elo, features, train, plot
@@ -11,8 +11,13 @@ def main():
     args = parser.parse_args()
     if args.elo_transfer or args.multi_division: args.multi_season=True
     if args.verbose: print("Running the code with args:", args)
-    if args.division is None:
-        args.division = get_default_divisions(args.country)
+    args.countries = parse_countries(args.countries)  # Now args.country is a list
+    if args.division:
+        # User specified divisions manually
+        args.country_divisions = get_divisions_for_countries(args.countries, args.division)
+    else:
+        # Use defaults (top 2 per country)
+        args.division = get_default_divisions(args.countries)
     divisions = args.division
     seasons = parse_start_years(args.season_start)
     dirs = setup_directories(args)
@@ -26,7 +31,7 @@ def main():
         'train': train.execute,
         'plot': plot.execute,
     }
-    
+    print(divisions)
     handler = commands.get(args.cmd)
     if handler:
         handler(seasons, divisions, args, dirs)

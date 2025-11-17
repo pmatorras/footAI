@@ -23,20 +23,24 @@ def team_matches_rows(df, team_name):
                 'date': row['Date'],
                 'goals_scored': row['FTHG'],
                 'goals_conceded': row['FTAG'],
-                'shots': row['HS'],
-                'shots_on_target': row['HST'],
                 'result': row['FTR'],  # H/D/A
-                'is_home': True
+                'is_home': True,
+                # Shot data (might not exist in older seasons)
+                'shots': row.get('HS', None),
+                'shots_on_target': row.get('HST', None),
+                'fouls': row.get('HF', None),
             })
         elif row['AwayTeam'] == team_name:
             team_matches.append({
                 'date': row['Date'],
                 'goals_scored': row['FTAG'],
                 'goals_conceded': row['FTHG'],
-                'shots': row['AS'],
-                'shots_on_target': row['AST'],
                 'result': 'W' if row['FTR'] == 'A' else ('D' if row['FTR'] == 'D' else 'L'),
-                'is_home': False
+                'is_home': False,
+                # Shot data (might not exist in older seasons)
+                'shots_conceded': row.get('AS', None),
+                'shots_on_target_conceded': row.get('AST', None),
+                'fouls_conceded': row.get('AF', None),
             })
     return team_matches
 
