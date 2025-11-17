@@ -95,6 +95,9 @@ EXTENDED_LITE_FEATURES = BASELINE_FEATURES + [
     'draw_prob_dispersion',
     'odds_draw_prob_norm',
 ]
+FAULTS_FEATURES = ["home_fouls_L5", "away_fouls_L5", "foul_diff_L5"]
+
+DRAW_FAULT_FEATURES = EXTENDED_LITE_FEATURES + FAULTS_FEATURES
 # Registry for cleaner lookup
 FEATURE_SETS = {
     'baseline': BASELINE_FEATURES,
@@ -102,6 +105,7 @@ FEATURE_SETS = {
     'draw_features': DRAW_FEATURES,
     'draw_optimized': TOP_DRAW_FEATURES,
     'draw_lite': EXTENDED_LITE_FEATURES,
+    'draw_faults' : DRAW_FAULT_FEATURES
 }
 
 EXCLUDE_COLS = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
@@ -172,12 +176,10 @@ def get_default_divisions(countries):
             {'SP': ['SP1', 'SP2']} for Spain
             {'SP': ['SP1', 'SP2'], 'IT': ['I1', 'I2']} for Spain+Italy
     """
-    # Handle single country string (backward compatibility)
-    if isinstance(countries, str):
-        countries = [countries]
     
     country_divisions = {}
     for country in countries:
+        print(country)
         country_divs = list(COUNTRIES[country]['divisions'].keys())
         country_divisions[country] = country_divs[:2]  # First two tiers per country
     
@@ -199,15 +201,13 @@ def get_divisions_for_countries(countries, divisions):
         ValueError: If a division doesn't belong to any specified country
     """
     country_divisions = {country: [] for country in countries}
-    
-    for division in divisions:
-        # Find which country this division belongs to
-        found = False
-        for country in countries:
+    for country in countries:
+        for division in divisions[country]:
+            found = False
+            print(country, division, COUNTRIES[country]['divisions'])
             if division in COUNTRIES[country]['divisions']:
                 country_divisions[country].append(division)
                 found = True
-                break
         
         if not found:
             raise ValueError(

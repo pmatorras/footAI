@@ -6,10 +6,9 @@ from footai.utils.paths import get_season_paths, get_multiseason_path
 from footai.ml.feature_engineering import engineer_features, save_features
 
 
-def execute(seasons, divisions, args, dirs):
-    for country in args.countries:
+def execute(countries, seasons, divisions, args, dirs):
+    for country in countries:
         if args.multi_season:
-            print(divisions)
             for division in divisions[country]:
                 elo_dir = get_multiseason_path(dirs[country]['proc'], division, seasons[0], seasons[-1], args)
                 df = pd.read_csv(elo_dir)

@@ -13,6 +13,8 @@ MULTI_DIV_FLAG = $(if $(filter $(MULTI_DIVISION),yes true 1),--multi-division,)
 COUNTRY ?= SP
 SEASON_START ?= 22,23,24
 FEATURES_SET ?= baseline
+FEATURES_SET := $(if $(FEATURES_SET),$(FEATURES))
+
 MODEL ?= rf
 
 # Optional: Allow overriding if needed
@@ -32,13 +34,13 @@ elo_multi:
 elo_nomulti: 
 	footai elo --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(PYTHON_FLAGS)
 features_multi:
-	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -v -m
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(PYTHON_FLAGS) -m
 
 features_nomulti:
-	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -v 
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) $(PYTHON_FLAGS)
 
 features:
-	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer -v
+	footai features --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer $(PYTHON_FLAGS)
 
 prepare_train: promotion elo features
 prepare_train_multi: promotion elo_multi features_multi

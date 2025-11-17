@@ -16,7 +16,7 @@ from footai.ml.feature_engineering import combine_divisions_features
 from footai.ml.evaluation import print_results_summary, write_metrics_json
 from footai.utils.logger import log_training_run
 
-def execute(seasons, divisions, args, dirs):    
+def execute(countries, seasons, divisions, args, dirs):    
     args.stats = False if args.nostats else True
     if args.verbose: print("Training...")
     all_results={}
@@ -24,7 +24,7 @@ def execute(seasons, divisions, args, dirs):
     if args.multicountries:
         print("no functionality yet")
     else:
-        for country in args.countries:
+        for country in countries:
             all_results[country] = {}
             if args.multi_division:  
                 combined_features = combine_divisions_features(country, divisions[country], seasons, dirs[country], args)

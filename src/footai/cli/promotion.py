@@ -3,8 +3,8 @@
 from footai.utils.paths import get_previous_season
 from footai.core.team_movements import identify_promotions_relegations_for_season, save_promotion_relegation
 
-def execute(seasons, divisions, args, dirs):
-    for country in args.countries:
+def execute(countries, seasons, divisions, args, dirs):
+    for country in countries:
         for season_idx, season in enumerate(seasons):
             if season_idx == 0:
                 # First season - no previous season to compare
