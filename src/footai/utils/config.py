@@ -64,52 +64,10 @@ COUNTRIES = {
     }
 }
 
-BASELINE_FEATURES = [
-    'HomeElo', 'AwayElo', 'elo_diff',
-    'home_goals_scored_L5', 'away_goals_scored_L5',
-    'home_goals_conceded_L5', 'away_goals_conceded_L5',
-    'home_ppg_L5', 'away_ppg_L5', 'form_diff_L5',
-    'odds_home_prob_norm', 'odds_away_prob_norm'
-]
 
-EXTENDED_FEATURES = BASELINE_FEATURES + [
-    'home_shots_L5', 'away_shots_L5',
-    'home_shot_accuracy_L5', 'away_shot_accuracy_L5',
-    'home_gd_L5', 'away_gd_L5'
-]
-DRAW_FEATURES = EXTENDED_FEATURES + [
-    'draw_prob_consensus', 'draw_prob_dispersion', 'under_2_5_prob', 'under_2_5_zscore',
-    'abs_elo_diff', 'elo_diff_sq', 'low_elo_diff', 'medium_elo_diff', 'abs_odds_prob_diff',
-    'abs_ahh', 'ahh_zero', 'ahh_flat', 'min_shots_l5', 'min_shot_acc_l5', 'min_goals_scored_l5',
-    'home_draw_rate_l10', 'away_draw_rate_l10',
-    'league_draw_bias'] 
-TOP_DRAW_FEATURES = EXTENDED_FEATURES + [
-    'draw_prob_consensus', 'abs_odds_prob_diff', 'under_2_5_prob', 
-    'draw_prob_dispersion', 'abs_elo_diff', 'under_2_5_zscore', 'elo_diff_sq',
-    'min_shot_acc_l5', 'min_shots_l5', 'abs_ahh'  
-]
-EXTENDED_LITE_FEATURES = BASELINE_FEATURES + [
-    'draw_prob_consensus',
-    'under_2_5_prob',
-    'asian_handicap_diff',
-    'draw_prob_dispersion',
-    'odds_draw_prob_norm',
-]
-FAULTS_FEATURES = ["home_fouls_L5", "away_fouls_L5", "foul_diff_L5"]
 
-DRAW_FAULT_FEATURES = EXTENDED_LITE_FEATURES + FAULTS_FEATURES
-# Registry for cleaner lookup
-FEATURE_SETS = {
-    'baseline': BASELINE_FEATURES,
-    'extended': EXTENDED_FEATURES,
-    'draw_features': DRAW_FEATURES,
-    'draw_optimized': TOP_DRAW_FEATURES,
-    'draw_lite': EXTENDED_LITE_FEATURES,
-    'draw_faults' : DRAW_FAULT_FEATURES
-}
 
-EXCLUDE_COLS = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
-                'FTHG', 'FTAG', 'FTR', 'HTHG', 'HTAG', 'HTR']
+from footai.ml.feature_engineering.definitions import FEATURE_SETS
 
 def select_features(df, feature_set="baseline"):
     """
@@ -122,10 +80,16 @@ def select_features(df, feature_set="baseline"):
     Returns:
         List of feature column names
     """
-
+    # Define columns to exclude (metadata, raw data, target)
+    exclude_cols = [
+        'Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam',
+        'FTHG', 'FTAG', 'FTR', 'HTHG', 'HTAG', 'HTR',
+        'HS', 'AS', 'HST', 'AST', 'HF', 'AF', 'HC', 'AC',
+        'HY', 'AY', 'HR', 'AR', 'Division', 'Season'  # Add any other metadata columns
+    ]
     if feature_set == 'all':
             return [col for col in df.columns 
-                    if col not in EXCLUDE_COLS and df[col].dtype in ['float64', 'int64']]
+                    if col not in exclude_cols and df[col].dtype in ['float64', 'int64']]
     if feature_set not in FEATURE_SETS:
         raise ValueError(f"Unknown feature_set: {feature_set}")
     
