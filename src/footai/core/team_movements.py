@@ -20,8 +20,8 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
     tier2_div = divisions[1]  # e.g., 'SP2' for Spain
     
     # Load previous season data
-    paths_prev_tier1 = get_season_paths(prev_season, tier1_div, dirs, args)
-    paths_prev_tier2 = get_season_paths(prev_season, tier2_div, dirs, args)
+    paths_prev_tier1 = get_season_paths(country, prev_season, tier1_div, dirs, args)
+    paths_prev_tier2 = get_season_paths(country, prev_season, tier2_div, dirs, args)
     
     # Check if previous season files exist
     if not os.path.exists(paths_prev_tier1['raw']):
@@ -40,18 +40,18 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
     df_prev_tier1 = pd.read_csv(paths_prev_tier1['raw'])
     df_prev_tier2 = pd.read_csv(paths_prev_tier2['raw'])
     
-    teams_prev_tier1 = set(df_prev_tier1['HomeTeam'].unique())
-    teams_prev_tier2 = set(df_prev_tier2['HomeTeam'].unique())
+    teams_prev_tier1 = set(df_prev_tier1['HomeTeam'].dropna().unique())
+    teams_prev_tier2 = set(df_prev_tier2['HomeTeam'].dropna().unique())
     
     # Load current season data
-    paths_curr_tier1 = get_season_paths(season, tier1_div, dirs, args)
-    paths_curr_tier2 = get_season_paths(season, tier2_div, dirs, args)
+    paths_curr_tier1 = get_season_paths(country, season, tier1_div, dirs, args)
+    paths_curr_tier2 = get_season_paths(country, season, tier2_div, dirs, args)
     
     df_curr_tier1 = pd.read_csv(paths_curr_tier1['raw'])
     df_curr_tier2 = pd.read_csv(paths_curr_tier2['raw'])
     
-    teams_curr_tier1 = set(df_curr_tier1['HomeTeam'].unique())
-    teams_curr_tier2 = set(df_curr_tier2['HomeTeam'].unique())
+    teams_curr_tier1 = set(df_curr_tier1['HomeTeam'].dropna().unique())
+    teams_curr_tier2 = set(df_curr_tier2['HomeTeam'].dropna().unique())
     
     # Identify promotions and relegations
     relegated_from_tier1 = teams_prev_tier1 - teams_curr_tier1
@@ -87,10 +87,10 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
     
     if num_relegated != num_promoted:
         print(f"Warning: {num_relegated} team relegated but {num_promoted} promoted from tier1!")
-    
-    print(f"Identified {num_relegated} relegated and {num_promoted} promoted teams\n")
-    print(f"Relegated: {relegated_from_tier1}")
-    print(f"Promoted: {promoted_to_tier1}\n")
+    if args.verbose:
+        print(f"Identified {num_relegated} relegated and {num_promoted} promoted teams\n")
+        print(f"Relegated: {relegated_from_tier1}")
+        print(f"Promoted: {promoted_to_tier1}\n")
     
     return results_df
 
@@ -102,7 +102,8 @@ def load_promotion_relegation(season, country, dirs):
     if not path.exists():
         print(f"  File not found: {path}")
         return None
-    return pd.read_csv(path)
+    df = pd.read_csv(path)
+    return df.dropna(subset=['team'])
 
 def save_promotion_relegation(results_df, season, country, dirs):
     """Save promotion/relegation data to CSV."""

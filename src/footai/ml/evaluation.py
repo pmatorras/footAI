@@ -4,6 +4,36 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
+def print_cv_strategy(df, n_splits=3):
+    """Print expanding-window CV strategy for documentation."""
+    from sklearn.model_selection import TimeSeriesSplit
+    
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    
+    print("\n" + "="*70)
+    print("EXPANDING-WINDOW TIME SERIES CROSS-VALIDATION")
+    print("="*70)
+    
+    for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
+        train_dates = df.iloc[train_idx]['Date'].dropna()  # NEW: Drop NaT
+        test_dates = df.iloc[test_idx]['Date'].dropna()    # NEW: Drop NaT
+        
+        # Check if we have valid dates
+        if len(train_dates) == 0 or len(test_dates) == 0:
+            print(f"Fold {fold+1}: Skipping (missing dates)")
+            continue
+        
+        train_start = train_dates.min().strftime('%Y-%m')
+        train_end = train_dates.max().strftime('%Y-%m')
+        test_start = test_dates.min().strftime('%Y-%m')
+        test_end = test_dates.max().strftime('%Y-%m')
+        
+        print(f"Fold {fold+1}: Train {train_start} to {train_end} ({len(train_idx):>4} matches) "
+              f"→ Test {test_start} to {test_end} ({len(test_idx):>3} matches)")
+    
+    print("="*70 + "\n")
+
+
 
 def print_results_summary(all_results,divisions):
     '''
@@ -64,14 +94,14 @@ def print_results_summary(all_results,divisions):
             print("="*70)
 
 
-def print_classification(y_test, y_pred, feature_set, class_report):
+def print_classification(class_report):
     print("\n" + "-"*70)
     print("Classification Report:")
     print("-"*70)
     print(class_report)
     print("-"*70)
 
-def print_confusion(y_test, y_pred, feature_set, cm):
+def print_confusion(feature_set, cm):
     print(f"Confusion Matrix ({feature_set}):")
     print("-"*70)
     print("         Predicted")
@@ -106,7 +136,7 @@ def print_per_division(df_test, pred_col='Prediction'):
         print(f"       D {cm[1][0]:4d} {cm[1][1]:4d} {cm[1][2]:4d}")
         print(f"       A {cm[2][0]:4d} {cm[2][1]:4d} {cm[2][2]:4d}")
 
-def print_feature_importance(model, feature_cols, feature_set):
+def print_feature_importance(model, feature_cols, feature_set, stats=False):
     clf = model.named_steps['clf']
     if hasattr(clf, 'feature_importances_'):
         importances = clf.feature_importances_
@@ -122,39 +152,59 @@ def print_feature_importance(model, feature_cols, feature_set):
     else:
         aligned = feature_cols
     importance_df = pd.DataFrame({'feature': aligned, 'importance': importances}).sort_values('importance', ascending=False)
-    print("\n" + "-"*70)
-    print(f"Feature Importance ({feature_set}, Top 10):")
-    print("-"*70)
-    print(importance_df.head(30).to_string(index=False))
+    if stats:
+        print("\n" + "-"*70)
+        print(f"Feature Importance ({feature_set}):")
+        print("-"*70)
+        print(importance_df.head(30).to_string(index=False))
+    return importance_df
 
-
-def write_metrics_json(json_path, country, divisions, feature_set, results, seasons):
+def write_metrics_json(json_path, country, divisions, feature_set, results, seasons, model='rf', cv_folds=None):
     """Write structured training metrics to JSON."""
     metrics = {
-        'country': country,
-        'divisions': divisions,
-        'seasons': seasons,
-        'feature_set': feature_set,
-        'model': 'rf',
-        'timestamp': datetime.now().isoformat(),
-        'accuracy': float(results['accuracy']),
-        # Per-class metrics
-        'home_precision': float(results.get('home_precision', 0)),
-        'home_recall': float(results.get('home_recall', 0)),
-        'home_f1': float(results.get('home_f1', 0)),
-        'draw_precision': float(results.get('draw_precision', 0)),
-        'draw_recall': float(results.get('draw_recall', 0)),
-        'draw_f1': float(results.get('draw_f1', 0)),
-        'away_precision': float(results.get('away_precision', 0)),
-        'away_recall': float(results.get('away_recall', 0)),
-        'away_f1': float(results.get('away_f1', 0)),
+        'metadata': {
+            'country': country,
+            'divisions': divisions,
+            'seasons': seasons,
+            'feature_set': feature_set,
+            'model': model,
+            'n_splits' : len(cv_folds) if cv_folds else 3,
+            'timestamp': datetime.now().isoformat()
+        },
+        'overall_test':{
+            'accuracy': float(results['accuracy']),
+            'n_samples': int(results.get('n_samples', 0)),
+            # Per-class metrics
+            'home': {
+                'precision': float(results.get('home_precision', 0)),
+                'recall': float(results.get('home_recall', 0)),
+                'f1': float(results.get('home_f1', 0)),
+            },
+            'draw': {
+                'precision': float(results.get('draw_precision', 0)),
+                'recall': float(results.get('draw_recall', 0)),
+                'f1': float(results.get('draw_f1', 0)),
+            },
+            'away':{
+                'precision': float(results.get('away_precision', 0)),
+                'recall': float(results.get('away_recall', 0)),
+                'f1': float(results.get('away_f1', 0)),
+            }
+        },
+        'confusion_matrix' : results.get('confusion_matrix', None),
+        'cv_results' : {
+            'summary' : {
+                'cv_accuracy_mean' : float(results['cv_accuracy_mean']),
+                'cv_accuracy_std' : float(results['cv_accuracy_std']),
+                'cv_draw_recall_mean' : float(results.get('cv_draw_recall_mean', 0)),
+                'cv_draw_recall_std' : float(results.get('cv_draw_recall_std', 0)),
+            }
+        },
+        'per_division' :  results.get('per_division', None),
+        'feature_importance': results.get('feature_importance', None)
     }
+
     
-    if 'cv_accuracy_mean' in results:
-        metrics['cv_accuracy_mean'] = float(results['cv_accuracy_mean'])
-        metrics['cv_accuracy_std'] = float(results['cv_accuracy_std'])
-        metrics['cv_draw_recall_mean'] = float(results.get('cv_draw_recall_mean', 0))
-        metrics['cv_draw_recall_std'] = float(results.get('cv_draw_recall_std', 0))
-    print("File saved to:", json_path)
+
     with open(json_path, 'w') as f:
         json.dump(metrics, f, indent=2)

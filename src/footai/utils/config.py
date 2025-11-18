@@ -7,6 +7,22 @@ PROCESSED_DIR = DATA_DIR / 'processed'
 FEATURES_DIR  = DATA_DIR / 'features'
 FIG_DIR       = ROOT_DIR / 'figures'
 
+def setup_directories(args):
+    '''Create dictionary with directories and ensure they exist'''
+    dirs = {}
+    for country in args.countries:
+        dirs[country] = {
+            'raw'  : args.raw_dir / country,
+            'proc' : args.processed_dir / country,
+            'feat' : args.features_dir / country,
+            'fig'  : FIG_DIR
+
+        }
+        for dir in dirs[country].keys():
+            if args.verbose: print("creating", dirs[country][dir])
+            Path(dirs[country][dir]).mkdir(parents=True, exist_ok=True)
+    return dirs
+
 COUNTRIES = {
     "SP" : {
         "name" : "Spain",
@@ -65,20 +81,31 @@ DRAW_FEATURES = EXTENDED_FEATURES + [
     'draw_prob_consensus', 'draw_prob_dispersion', 'under_2_5_prob', 'under_2_5_zscore',
     'abs_elo_diff', 'elo_diff_sq', 'low_elo_diff', 'medium_elo_diff', 'abs_odds_prob_diff',
     'abs_ahh', 'ahh_zero', 'ahh_flat', 'min_shots_l5', 'min_shot_acc_l5', 'min_goals_scored_l5',
-    #'home_draw_rate_l10', 'away_draw_rate_l10', #Currently broken
+    'home_draw_rate_l10', 'away_draw_rate_l10',
     'league_draw_bias'] 
 TOP_DRAW_FEATURES = EXTENDED_FEATURES + [
     'draw_prob_consensus', 'abs_odds_prob_diff', 'under_2_5_prob', 
     'draw_prob_dispersion', 'abs_elo_diff', 'under_2_5_zscore', 'elo_diff_sq',
     'min_shot_acc_l5', 'min_shots_l5', 'abs_ahh'  
 ]
+EXTENDED_LITE_FEATURES = BASELINE_FEATURES + [
+    'draw_prob_consensus',
+    'under_2_5_prob',
+    'asian_handicap_diff',
+    'draw_prob_dispersion',
+    'odds_draw_prob_norm',
+]
+FAULTS_FEATURES = ["home_fouls_L5", "away_fouls_L5", "foul_diff_L5"]
 
+DRAW_FAULT_FEATURES = EXTENDED_LITE_FEATURES + FAULTS_FEATURES
 # Registry for cleaner lookup
 FEATURE_SETS = {
     'baseline': BASELINE_FEATURES,
     'extended': EXTENDED_FEATURES,
     'draw_features': DRAW_FEATURES,
     'draw_optimized': TOP_DRAW_FEATURES,
+    'draw_lite': EXTENDED_LITE_FEATURES,
+    'draw_faults' : DRAW_FAULT_FEATURES
 }
 
 EXCLUDE_COLS = ['Div', 'Date', 'Time', 'HomeTeam', 'AwayTeam', 
@@ -104,20 +131,85 @@ def select_features(df, feature_set="baseline"):
     
     return [col for col in FEATURE_SETS[feature_set] if col in df.columns]
 
-def setup_directories(args):
-    '''Create dictionary with directories and ensure they exist'''
-    dirs = {
-        'raw'  : args.raw_dir / args.country,
-        'proc' : args.processed_dir / args.country,
-        'feat' : args.features_dir / args.country,
-        'fig'  : FIG_DIR
+def parse_countries(country_arg):
+    """
+    Parse country argument into list of countries.
+    
+    Args:
+        country_arg: String like 'SP' or 'SP,IT' or 'SP IT'
+    
+    Returns:
+        List of country codes (e.g., ['SP'] or ['SP', 'IT'])
+        
+    Examples:
+        >>> parse_countries('SP')
+        ['SP']
+        >>> parse_countries('SP,IT')
+        ['SP', 'IT']
+        >>> parse_countries('SP IT')
+        ['SP', 'IT']
+    """
 
-    }
-    for dir in dirs.keys():
-        if args.verbose: print("creating", dirs[dir])
-        Path(dirs[dir]).mkdir(parents=True, exist_ok=True)
-    return dirs
+    # Handle comma-separated or space-separated
+    if ',' in country_arg:
+        countries = [c.strip().upper() for c in country_arg.split(',')]
+    else:
+        countries = [c.strip().upper() for c in country_arg.split()]
+    
+    # Validate all countries exist
+    for c in countries:
+        if c not in COUNTRIES.keys():
+            raise ValueError(f"Unknown country code: {c}. Valid: {list(COUNTRIES.keys())}")
+    
+    return countries
 
 
+def get_default_divisions(countries):
+    """
+    Get first two divisions for a country (Tier 1 + Tier 2).
+    
+    Args:
+        countries: Single country code string or list of country codes (e.g., 'SP' or ['SP', 'IT'])    
+    Returns:
+        Dictionary mapping country -> list of division codes
+        Example: 
+            {'SP': ['SP1', 'SP2']} for Spain
+            {'SP': ['SP1', 'SP2'], 'IT': ['I1', 'I2']} for Spain+Italy
+    """
+    
+    country_divisions = {}
+    for country in countries:
+        country_divs = list(COUNTRIES[country]['divisions'].keys())
+        country_divisions[country] = country_divs[:2]  # First two tiers per country
+    
+    return country_divisions
 
-
+def get_divisions_for_countries(countries, divisions):
+    """
+    Map specified divisions to their countries.
+    
+    Args:
+        countries: List of country codes (e.g., ['SP', 'IT'])
+        divisions: List of division codes (e.g., ['SP1', 'I1'])
+    
+    Returns:
+        Dictionary mapping country -> list of divisions
+        Example: {'SP': ['SP1'], 'IT': ['I1']}
+    
+    Raises:
+        ValueError: If a division doesn't belong to any specified country
+    """
+    country_divisions = {country: [] for country in countries}
+    for country in countries:
+        for division in divisions[country]:
+            found = False
+            if division in COUNTRIES[country]['divisions']:
+                country_divisions[country].append(division)
+                found = True
+        
+        if not found:
+            raise ValueError(
+                f"Division '{division}' doesn't belong to any specified country: {countries}"
+            )
+    
+    return country_divisions

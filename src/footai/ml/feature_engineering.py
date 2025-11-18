@@ -23,20 +23,24 @@ def team_matches_rows(df, team_name):
                 'date': row['Date'],
                 'goals_scored': row['FTHG'],
                 'goals_conceded': row['FTAG'],
-                'shots': row['HS'],
-                'shots_on_target': row['HST'],
                 'result': row['FTR'],  # H/D/A
-                'is_home': True
+                'is_home': True,
+                # Shot data (might not exist in older seasons)
+                'shots': row.get('HS', None),
+                'shots_on_target': row.get('HST', None),
+                'fouls': row.get('HF', None),
             })
         elif row['AwayTeam'] == team_name:
             team_matches.append({
                 'date': row['Date'],
                 'goals_scored': row['FTAG'],
                 'goals_conceded': row['FTHG'],
-                'shots': row['AS'],
-                'shots_on_target': row['AST'],
                 'result': 'W' if row['FTR'] == 'A' else ('D' if row['FTR'] == 'D' else 'L'),
-                'is_home': False
+                'is_home': False,
+                # Shot data (might not exist in older seasons)
+                'shots_conceded': row.get('AS', None),
+                'shots_on_target_conceded': row.get('AST', None),
+                'fouls_conceded': row.get('AF', None),
             })
     return team_matches
 
@@ -59,12 +63,13 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
 
     # Extract team's matches
     team_matches = team_matches_rows(df, team_name=team_name)
-    team_df = pd.DataFrame(team_matches).sort_values('date').reset_index(drop=True)
+    date_col = 'Date' if 'Date' in team_matches[0] else 'date'
+    team_df = pd.DataFrame(team_matches).sort_values(date_col).reset_index(drop=True)
 
     # Calculate rolling features
     features = {}
     for i in range(len(team_df)):
-        match_date = team_df.iloc[i]['date']
+        match_date = team_df.iloc[i][date_col]
 
         if i < 1:
             # First match - no history
@@ -88,12 +93,17 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
             total_shots = prev_matches['shots'].sum()
             shot_acc = (prev_matches['shots_on_target'].sum() / total_shots * 100) if total_shots > 0 else 0
 
+            # Foul aggregations
+            fouls_data = prev_matches['fouls'].dropna()
+            avg_fouls = fouls_data.mean() if len(fouls_data) > 0 else np.nan
+            
             features[match_date] = {
                 f'goals_scored_L{window}': prev_matches['goals_scored'].mean(),
                 f'goals_conceded_L{window}': prev_matches['goals_conceded'].mean(),
                 f'ppg_L{window}': points.mean(),
                 f'shots_L{window}': prev_matches['shots'].mean(),
                 f'shot_accuracy_L{window}': shot_acc,
+                f'fouls_L{window}': avg_fouls,  
             }
 
     cache[cache_key] = features
@@ -122,6 +132,12 @@ def add_match_features(df: pd.DataFrame) -> pd.DataFrame:
         df['home_gd_L5'] = df['home_goals_scored_L5'] - df['home_goals_conceded_L5']
         df['away_gd_L5'] = df['away_goals_scored_L5'] - df['away_goals_conceded_L5']
 
+    if 'home_fouls_L3' in df.columns and 'away_fouls_L3' in df.columns:
+        df['foul_diff_L3'] = df['home_fouls_L3'] - df['away_fouls_L3']
+    
+    if 'home_fouls_L5' in df.columns and 'away_fouls_L5' in df.columns:
+        df['foul_diff_L5'] = df['home_fouls_L5'] - df['away_fouls_L5']
+        
     # Home advantage indicator (always 1 for home team)
     df['is_home'] = 1
 
@@ -306,6 +322,14 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], verbos
         print("Starting feature engineering...")
 
     # Prepare data
+    df = df[
+        df['HomeTeam'].notna() &
+        df['AwayTeam'].notna() &
+        (df['HomeTeam'].astype(str).str.strip().str.lower() != 'nan') &
+        (df['AwayTeam'].astype(str).str.strip().str.lower() != 'nan') &
+        (df['HomeTeam'].astype(str).str.strip() != '') &
+        (df['AwayTeam'].astype(str).str.strip() != '')
+    ].copy()
     enriched_df = df.copy()
     enriched_df['Date'] = pd.to_datetime(enriched_df['Date'])
     enriched_df = enriched_df.sort_values('Date').reset_index(drop=True)
@@ -325,11 +349,13 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], verbos
             f'home_ppg_L{window}',
             f'home_shots_L{window}',
             f'home_shot_accuracy_L{window}',
+            f'home_fouls_L{window}',
             f'away_goals_scored_L{window}',
             f'away_goals_conceded_L{window}',
             f'away_ppg_L{window}',
             f'away_shots_L{window}',
             f'away_shot_accuracy_L{window}',
+            f'away_fouls_L{window}',
         ]
 
         for col in feature_cols:
