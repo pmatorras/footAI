@@ -3,7 +3,7 @@
 
 import pandas as pd
 from footai.utils.paths import get_season_paths, get_multiseason_path
-from footai.ml.feature_engineering import engineer_features, save_features
+from footai.ml.feature_engineering.pipeline import engineer_features, save_features
 
 
 def execute(countries, seasons, divisions, args, dirs):
