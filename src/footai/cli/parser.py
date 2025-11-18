@@ -41,7 +41,8 @@ def create_parser():
         sp.add_argument("-v", "--verbose", action="store_true", help="Verbose additional info")
         sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
         sp.add_argument("--elo-transfer", action="store_true", help="Transfer ELO ratings from relegated to promoted teams")
-        sp.add_argument('--multi-division', action='store_true', help='Train on multiple divisions (e.g., SP1+SP2). Requires --div to specify both divisions.')
+        sp.add_argument('--multi-division', action='store_true', help='Train on multiple divisions (e.g., SP1+SP2).')
+        sp.add_argument('--multi-countries', action='store_true', help='Train on multiple countries (Eg SP+EN).')
 
     return parser
 

@@ -25,7 +25,7 @@ class TeeLogger:
 
 
 @contextmanager
-def log_training_run(country, divisions, feature_set, seasons, model='rf', multidiv=False, results_dir='results'):
+def log_training_run(country, divisions, feature_set, seasons, model='rf', multidiv=False, multicountry=False, tier=None, results_dir='results'):
     """
     Context manager for logging training runs to file.
     
@@ -35,16 +35,40 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', multi
         feature_set: Feature set name
         seasons: List of season codes
         model: Model type
+        multidiv: Multi-division training
+        multicountry: Multi-country training
+        tier: 'tier1', 'tier2', or None
         results_dir: Base results directory
     
     Yields:
         Path: JSON file path for writing structured metrics
     """
     timestamp = datetime.now().strftime('%Y%m%d')
-    div_str = country+"_multidiv" if multidiv else str(divisions)
+    country_str = '_'.join(country) if multicountry else country
     season_str = f"{seasons[0]}_to_{seasons[-1]}" if len(seasons) > 1 else seasons[0]
+    # Format division string for filename and header
+    if tier:
+        # Tier-specific training
+        all_divs = [d for divs in divisions.values() for d in divs]
+        div_str = tier
+        header_div = f"{tier.capitalize()} ({', '.join(all_divs)})"
+    elif multicountry:
+        # Multi-country: list all divisions
+        all_divs = [d for divs in divisions.values() for d in divs]
+        div_str = f"{country_str}_multicountry"
+        header_div = f"{', '.join(all_divs)}"
+    elif multidiv:
+        # Multi-division (single country): list divisions
+        div_str = f"{country_str}_multidiv"
+        header_div = f"{', '.join(divisions)}"
+    else:
+        # Single division
+        div_str = divisions[0] if isinstance(divisions, list) else str(divisions)
+        header_div = div_str
     
-    out_dir = Path(results_dir) / country
+
+    
+    out_dir = Path(results_dir) / country_str
     out_dir.mkdir(parents=True, exist_ok=True)
     
     filename = f"{div_str}_{season_str}_{feature_set}_{model}_{timestamp}"
@@ -58,7 +82,7 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', multi
     try:
         # Print header
         print("="*70)
-        print(f"TRAINING: {divisions} ({format_season_list(seasons)})")
+        print(f"TRAINING: {header_div} ({format_season_list(seasons)})")
         print("-"*70)        
         print(f"Feature set: {feature_set}, Model: {model}")
         print(f"Timestamp: {datetime.now().isoformat()}")

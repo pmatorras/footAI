@@ -10,8 +10,8 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     if args.elo_transfer or args.multi_division: args.multi_season=True
+    if args.tier: args.multi_division=False
     if args.verbose: print("Running the code with args:", args)
-
     args.countries = parse_countries(args.countries)  
     if args.division:
         # User specified divisions manually
@@ -24,7 +24,7 @@ def main():
     seasons = parse_start_years(args.season_start)
     dirs = setup_directories(args)
 
-        # Command registry
+    # Command registry
     commands = {
         'download': download.execute,
         'promotion-relegation': promotion.execute,

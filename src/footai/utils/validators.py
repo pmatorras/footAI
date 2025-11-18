@@ -7,8 +7,30 @@ class ValidateDivisionAction(argparse.Action):
 
         
         countries = namespace.countries.split(',')
+
+        if values and values.lower() == 'tier1':
+            divisions = {
+                country: [list(COUNTRIES[country]['divisions'].keys())[0]]
+                for country in countries
+            }
+            is_tier_specific = True
+            setattr(namespace, 'tier', 'tier1')
+            setattr(namespace, self.dest, divisions)
+            return
+        
+        if values and values.lower() == 'tier2':
+            divisions = {
+                country: [list(COUNTRIES[country]['divisions'].keys())[1]]
+                for country in countries
+                if len(COUNTRIES[country]['divisions']) >= 2
+            }
+            is_tier_specific = True
+            setattr(namespace, 'tier', 'tier2')
+            setattr(namespace, self.dest, divisions)
+            return
         
         # If no divisions specified, use defaults
+        setattr(namespace, 'tier', None)
         if values is None:
             divisions = get_default_divisions(countries)
         else:

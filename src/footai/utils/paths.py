@@ -197,3 +197,51 @@ def format_season_list(seasons):
             prev = curr
     
     return ', '.join(ranges)
+
+# utils/paths.py
+
+def get_multicountry_model_path(countries, seasons, divisions, feature_set, model='rf', tier=None):
+    """
+    Generate model path for multi-country training.
+    
+    Args:
+        countries: List of country codes (e.g., ['SP', 'IT'])
+        seasons: List of season codes
+        divisions: Dict mapping country -> divisions
+        feature_set: Feature set name
+        model: Model type
+    
+    Returns:
+        Path to model file
+    
+    Examples:
+        Multi-country: 'models/multicountry/SP_IT_1516_to_2526_baseline_rf.pkl'
+        Single country: 'models/SP/SP_multidiv_1516_to_2526_baseline_rf.pkl'
+    """
+    from pathlib import Path
+    if tier:
+        # Tier-specific model (multi-country by definition)
+        country_str = '_'.join(sorted(countries))
+        model_dir = Path(f"models/multicountry")
+        filename = f"{tier}_{seasons[0]}_to_{seasons[-1]}_{feature_set}_{model}.pkl"
+    elif len(countries) > 1:
+        # Multi-country model
+        country_str = '_'.join(sorted(countries))
+        model_dir = Path(f"models/multicountry")
+        filename = f"{country_str}_{seasons[0]}_to_{seasons[-1]}_{feature_set}_{model}.pkl"
+    else:
+        # Single country, multi-division
+        country = countries[0]
+        model_dir = Path(f"models/{country}")
+        
+        # If multiple divisions, use "multidiv"
+        country_divs = divisions.get(country, [])
+        if len(country_divs) > 1:
+            filename = f"{country}_multidiv_{seasons[0]}_to_{seasons[-1]}_{feature_set}_{model}.pkl"
+        else:
+            # Single division
+            div = country_divs[0]
+            filename = f"{div}_{seasons[0]}_to_{seasons[-1]}_{feature_set}_{model}.pkl"
+    
+    model_dir.mkdir(parents=True, exist_ok=True)
+    return model_dir / filename

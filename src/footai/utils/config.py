@@ -179,7 +179,6 @@ def get_default_divisions(countries):
     
     country_divisions = {}
     for country in countries:
-        print(country)
         country_divs = list(COUNTRIES[country]['divisions'].keys())
         country_divisions[country] = country_divs[:2]  # First two tiers per country
     
@@ -204,7 +203,6 @@ def get_divisions_for_countries(countries, divisions):
     for country in countries:
         for division in divisions[country]:
             found = False
-            print(country, division, COUNTRIES[country]['divisions'])
             if division in COUNTRIES[country]['divisions']:
                 country_divisions[country].append(division)
                 found = True

@@ -263,6 +263,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     if save_model:
         save_path = Path(save_model)
         save_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Saving {args.model} Model to:", save_path)
         joblib.dump(model, save_path)
         if verbose:
             print(f"\nModel saved to: {save_path}")
