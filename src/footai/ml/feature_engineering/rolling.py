@@ -7,6 +7,9 @@ Temporal feature computation with no data leakage.
 import pandas as pd
 import numpy as np
 from typing import Dict
+from scipy import stats
+
+
 def team_matches_rows(df, team_name):
     """Extract chronological match history for a team."""
     team_matches = []
@@ -22,6 +25,8 @@ def team_matches_rows(df, team_name):
                 'shots': row.get('HS', None),
                 'shots_on_target': row.get('HST', None),
                 'fouls': row.get('HF', None),
+                'corners': row.get('HC', None),
+
             })
         elif row['AwayTeam'] == team_name:
             team_matches.append({
@@ -34,6 +39,7 @@ def team_matches_rows(df, team_name):
                 'shots_conceded': row.get('AS', None),
                 'shots_on_target_conceded': row.get('AST', None),
                 'fouls_conceded': row.get('AF', None),
+                'corners': row.get('AC', None),
             })
     return team_matches
 
@@ -72,6 +78,8 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
                 f'ppg_L{window}': np.nan,
                 f'shots_L{window}': np.nan,
                 f'shot_accuracy_L{window}': np.nan,
+                f'corners_L{window}': np.nan,
+
             }
         else:
             # Use only PREVIOUS matches (i-window to i-1)
@@ -89,7 +97,11 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
             # Foul aggregations
             fouls_data = prev_matches['fouls'].dropna()
             avg_fouls = fouls_data.mean() if len(fouls_data) > 0 else np.nan
-            
+
+            # Corners aggregation
+            corners_data = prev_matches['corners'].dropna()
+            avg_corners = corners_data.mean() if len(corners_data) > 0 else np.nan
+
             features[match_date] = {
                 f'goals_scored_L{window}': prev_matches['goals_scored'].mean(),
                 f'goals_conceded_L{window}': prev_matches['goals_conceded'].mean(),
@@ -97,7 +109,46 @@ def calculate_team_rolling_features(df: pd.DataFrame, team_name: str, window: in
                 f'shots_L{window}': prev_matches['shots'].mean(),
                 f'shot_accuracy_L{window}': shot_acc,
                 f'fouls_L{window}': avg_fouls,  
+                f'corners_L{window}': avg_corners,
+
             }
 
     cache[cache_key] = features
     return features
+
+
+def calculate_slope(series, window=5):
+    """
+    Calculate linear regression slope over a series.
+    
+    Args:
+        series: pandas Series of values
+        window: Number of points for regression (default 5)
+        
+    Returns:
+        float: Slope value (positive = increasing, negative = decreasing)
+        
+    Examples:
+        >>> series = pd.Series([1.0, 1.5, 2.0, 2.5, 3.0])
+        >>> calculate_slope(series, window=5)
+        0.5  # Increasing by 0.5 per match
+    """
+    
+    # Need at least 2 points for a slope
+    if len(series) < 2 or len(series) < window:
+        return np.nan
+    
+    # Take last 'window' values
+    values = series.values[-window:] if len(series) >= window else series.values
+    
+    # Check for NaN values
+    if np.any(np.isnan(values)):
+        return np.nan
+    
+    # X values: 0, 1, 2, 3, 4 for window=5
+    x = np.arange(len(values))
+    
+    # Calculate linear regression slope
+    slope, intercept, r_value, p_value, std_err = stats.linregress(x, values)
+    
+    return slope

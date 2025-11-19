@@ -1,39 +1,68 @@
 # Feature Engineering Documentation
-**footAI v0.2 - ML Predictions**
 
-Generated: 2025-11-08  
-Dataset: Spanish La Liga (2024-25 Season)
+Generated: 2025-11-19  
 
 ---
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Feature Categories](#feature-categories)
-3. [Elo-Based Features](#elo-based-features)
-4. [Rolling Form Features](#rolling-form-features)
-5. [Match-Level Features](#match-level-features)
-6. [Betting Market Features](#betting-market-features)
-7. [Technical Details](#technical-details)
-8. [ML Model Expectations](#ml-model-expectations)
+2. [Production Feature Sets](#production-feature-sets)
+3. [Feature Categories](#feature-categories)
+4. [Elo-Based Features](#elo-based-features)
+5. [Rolling Form Features](#rolling-form-features)
+6. [Match-Level Features](#match-level-features)
+7. [Betting Market Features](#betting-market-features)
+8. [League Context Features](#league-context-features)
+9. [Technical Details](#technical-details)
+10. [ML Model Expectations](#ml-model-expectations)
+
 
 ---
 
 ## Overview
 
-This document describes all engineered features used for match outcome prediction (Home/Draw/Away). Features are calculated with **temporal correctness** - for any match N, features only use data from matches 1 to N-1, to prevent data leakage.
+This document describes all engineered features used for match outcome prediction (Home/Draw/Away). Features are calculated with temporal correctness - for any match N, features only use data from matches 1 to N-1, to prevent data leakage.
 
 ### Feature Count Summary
 - **Elo features**: 5 (HomeElo, AwayElo, HomeExpected, AwayExpected, elo_diff)
-- **Rolling form features**: 20 (10 per window size: 3 mathces (L3), or five matches (L5))
-- **Match-level features**: 5 (form_diff_L5, home_gd_L5, away_gd_L5, is_home, odds_elo_diff)
-- **Betting market features**: 6 (probabilities and normalized values)
-- **Total engineered features**: ~36 core features
+- **Rolling form features**: 20 (10 per window size: L3 or L5)
+- **Match-level features**: 13 (form_diff_L5, home_gd_L5, away_gd_L5, is_home, odds_elo_diff, draw parity signals)
+- **Betting market features**: 11 (probabilities, normalized values, draw consensus, odds movement)
+- **League context features**: 3 (league draw bias, rolling draw rates)
+- **Total engineered features**: 52 features
 
+##**Key results**:
+- Baseline: 12 features, 34.35% draw recall
+- Production: 25-28 features, 38.08-38.17% draw recall
+- Total improvement: **+3.73-3.82% draw recall**
+
+See [feature_configuration.md](./feature_configuration.md) for full experiment details.
+
+## Production Feature Sets
+Two models have been shortlisted after the systematic testing, with similar accuracy and draw recall (DR):
+### a) odds_lite (25 features) 
+
+**Composition**: 12 baseline + 5 draw_lite + 3 league + 5 odds_movement
+
+**Performance**:
+- Accuracy: 50.42%
+- Draw Recall: 38.08%
+- Model: Random Forest
+
+
+### b) odds_optimized (28 features)
+
+**Composition**: 12 baseline + 8 draw_optimized + 3 league + 5 odds_movement
+
+**Performance**:
+- Accuracy: 50.57%
+- Draw Recall: 38.17%
+- Model: Random Forest
 ---
 
 ## Feature Categories
 
-### 1. Elo-Based Features
+### Elo-Based Features
 
 #### `HomeElo`
 - **Type**: Float
@@ -84,7 +113,7 @@ This document describes all engineered features used for match outcome predictio
 
 ---
 
-### 2. Rolling Form Features
+### Rolling Form Features
 
 All rolling features use **variable-length windows** for early matches:
 - Match 1: NaN (no history)
@@ -143,7 +172,7 @@ All rolling features use **variable-length windows** for early matches:
 
 ---
 
-### 3. Match-Level Features
+### Match-Level Features
 
 These features combine information from both teams.
 
@@ -184,9 +213,104 @@ These features combine information from both teams.
   - High absolute value: Potential value bet (market-Elo mismatch)
 > **Example**: -0.05 -> (betting market rates home team slightly lower than Elo)
 
+#### `abs_odds_prob_diff`
+- **Type**: Float
+- **Calculation**: `|odds_home_prob_norm - odds_away_prob_norm|`
+- **Range**: 0.0-0.8 (typically 0.0-0.4)
+- **Purpose**: Match parity indicator - lower values suggest closer match, higher draw probability
+- **Interpretation**:
+  - Near 0: Very close match (high draw chance)
+  - \> 0.3: Clear favorite (lower draw chance)
+> **Example**: 0.05 (very close match, high draw probability)
+
+#### `elo_diff_sq`
+- **Type**: Float
+- **Calculation**: `(elo_diff)`$^2$
+- **Range**: 0-160000 (typically 0-40000)
+- **Purpose**: Non-linear parity capture - amplifies large differences while compressing small ones
+> **Example**: elo_diff=50 → 2500 (moderate difference)
+
+#### `abs_elo_diff`
+- **Type**: Float
+- **Calculation**: `|elo_diff|`
+- **Range**: 0-400 (typically 0-200)
+- **Purpose**: Team parity indicator (independent of home/away)
+> **Example**: 75 (moderate strength difference)
+
+#### `min_shot_acc_l5`
+- **Type**: Float (percentage)
+- **Calculation**: `min(home_shot_accuracy_L5, away_shot_accuracy_L5)`
+- **Range**: 20%-60% (typically 30-45%)
+- **Purpose**: Mutual attacking inefficiency indicator - low values suggest both teams struggle to finish, leading to low-scoring draws
+> **Example**: 28% (both teams inefficient, potential draw)
 ---
 
-### 4. Betting Market Features
+### Betting Market Features
+#### Draw Consensus Features
+
+##### `draw_prob_consensus`
+- **Type**: Float (0-1)
+- **Calculation**: Mean draw probability across multiple bookmakers  
+`draw_prob_consensus = mean([B365D, BWD, IWD, LBD, PSD, WHD, VCD])`
+- **Range**: 0.15-0.40 (typically 0.23-0.32)
+- **Purpose**: Market consensus on draw likelihood - removes single-bookmaker noise
+> **Example**: 0.28 (28% draw probability per market consensus) `draw_prob_dispersion = std([B365D, BWD, IWD, LBD, PSD, WHD, VCD])
+
+##### `draw_prob_dispersion`
+- **Type**: Float
+- **Calculation**: Standard deviation of draw probabilities across bookmakers
+`draw_prob_dispersion = std([B365D, BWD, IWD, LBD, PSD, WHD, VCD])`
+- **Range**: 0.01-0.10 (typically 0.02-0.05)
+- **Purpose**: Market uncertainty indicator - high dispersion suggests disagreement about match difficulty
+- **Interpretation**:
+- Low (<0.03): High bookmaker agreement
+- High (>0.05): Bookmaker disagreement, potential value
+> **Example**: 0.04 (moderate market disagreement)
+
+##### `under_2_5_prob`
+- **Type**: Float (0-1)
+- **Calculation**: Implied probability of under 2.5 total goals from betting odds
+`under_2_5_prob = 1 / under_2_5_decimal_odds`
+- **Range**: 0.30-0.70 (typically 0.40-0.60)
+- **Purpose**: Low-scoring match indicator - correlates with draw outcomes
+> **Example**: 0.55 (55% chance of under 2.5 goals - defensive match)
+
+#### Odds Movement Features
+
+##### `draw_odds_drift`
+- **Type**: Float
+- **Calculation**: `(ClosingDrawOdds - OpeningDrawOdds) / OpeningDrawOdds`
+- **Range**: -0.30 to +0.30 (typically -0.10 to +0.10)
+- **Purpose**: Captures late information arrival (injuries, lineup news, weather, sharp money)
+- **Interpretation**:
+- Negative: Draw odds shortened (money came in on draw)
+- Positive: Draw odds lengthened (money came off draw)
+- Large magnitude: Significant late information
+> **Example**: -0.08 (draw odds shortened 8%, suggests late draw value)
+
+##### `home_odds_drift` / `away_odds_drift`
+- **Type**: Float
+- **Calculation**: `(ClosingOdds - OpeningOdds) / OpeningOdds` for home/away outcomes
+- **Range**: -0.40 to +0.40 (typically -0.15 to +0.15)
+- **Purpose**: Track market sentiment changes for home/away outcomes
+> **Example**: home_odds_drift = +0.12 (home odds lengthened, less confidence in home win)
+
+##### `sharp_money_on_draw`
+- **Type**: Integer (binary)
+- **Calculation**: `1 if draw_odds_drift < -0.02 else 0`
+- **Range**: 0 or 1
+- **Purpose**: Binary indicator for significant draw odds shortening (sharp money detection)
+- **Interpretation**:
+- 1: Draw odds shortened >2% (smart money on draw)
+- 0: No significant draw odds movement
+> **Example**: 1 (sharp money detected on draw)
+
+##### `odds_movement_magnitude`
+- **Type**: Float
+- **Calculation**: `|draw_odds_drift|`
+- **Range**: 0.0-0.30 (typically 0.0-0.10)
+- **Purpose**: Uncertainty signal - large movements indicate information asymmetry
+> **Example**: 0.09 (significant odds movement, high uncertainty)
 
 #### Raw Odds Probabilities
 
@@ -221,13 +345,41 @@ These features combine information from both teams.
 > **Example**: Raw: 0.471-> Normalized: 0.471 / 1.0566 = 0.446
 ---
 
+### 5. League Context Features
+
+These features capture cross-league differences in playing styles and draw rates.
+
+#### `league_draw_bias`
+- **Type**: Float
+- **Calculation**: Historical draw rate for the league over previous seasons
+- **Range**: 0.23-0.31 (typically 0.24-0.29)
+- **Purpose**: Captures inherent league characteristics (tactical, attacking, defensive styles)
+- **League profiles**:
+  - Serie A: 0.289 (defensive, tactical)
+  - La Liga: 0.273 (technical, balanced)
+  - Bundesliga: 0.262 (attacking)
+  - Ligue 1: 0.259 (varied)
+  - Premier League: 0.245 (high-tempo, attacking)
+> **Example**: 0.289 for Serie A match (higher baseline draw expectation)
+
+#### `home_draw_rate_l10` / `away_draw_rate_l10`
+- **Type**: Float
+- **Calculation**: Team's rolling draw rate over last 10 matches (home or away)
+`home_draw_rate_l10 = (draws in last 10 home matches) / 10`
+- **Range**: 0.0-0.7 (typically 0.1-0.5)
+- **Purpose**: Team-specific draw tendency (some teams draw more frequently)
+- **Interpretation**:
+- High (>0.4): Team frequently draws (defensive style, mid-table mentality)
+- Low (<0.2): Team rarely draws (attacking style, win-or-lose mentality)
+> **Example**: 0.35 (team draws 35% of home matches - defensive approach)
+
+
+---
 ## Technical Details
 
 ### Temporal Correctness
 
-**Critical principle**: Features for match N use only data from matches 1 to N-1.
-
-Example timeline for Real Madrid:
+Features for match N use only data from matches 1 to N-1. Example timeline for Real Madrid:
 ```
 Match 1 (Aug 18): home_goals_scored_L5 = NaN (no history)
 Match 2 (Aug 25): home_goals_scored_L5 = avg([Match 1])
@@ -238,22 +390,15 @@ Match 10 (Oct 5): home_goals_scored_L5 = avg([Match 5-9])
 
 This feature is designed to **data leakage** so that the model never sees future information when making predictions.
 
-### Handling Missing Values
 
-**First match strategy**: Set rolling features to NaN (no history available)
+### Odds Movement Data
 
-**Trade-offs**:
-1. **Current approach**: Calculate features from match 2+ using available history
-   - Pros: Retains 96%+ of data
-   - Cons: Early matches have incomplete windows (1-4 games instead of 5)
+Odds movement features require both opening and closing odds:
+- **Opening odds**: First published odds (typically 3-7 days before match)
+- **Closing odds**: Final odds just before kickoff (captures all late information)
+- **Data source**: football-data.co.uk provides both opening (Avg*) and closing (AvgC*) odds
 
-2. **Alternative**: Require full window (drop first 5 matches per team)
-   - Pros: All features have complete 5-match history
-   - Cons: Loses ~25% of training data
-
-3. **Alternative**: Carry over from previous league data
-   - Pros: No NaN values
-   - Cons: Tricky with promotions and relegations
+**Timeline example**:
 
 
 ### Feature Interactions
@@ -274,28 +419,6 @@ Some features are **correlated by design**:
 
 **Impact**: Tree-based models (Random Forest, XGBoost) handle multicollinearity well. Feature importance analysis will show which version the model prefers.
 
----
-
-## ML Model Expectations
-
-### Performance Benchmarks
-
-#### Baseline Accuracies
-- **Random guessing**: 33.3% (equal probability H/D/A)
-- **Always predict home win**: ~45% (reflects home advantage)
-- **Follow betting market**: ~50-53% (market is efficient)
-
-#### Target Accuracies
-- **Phase 1 (Baseline)**: 50%+ (validates approach)
-- **Phase 2 (Competitive)**: 52-54% (matches market)
-- **Phase 3 (Profitable)**: 55%+ (potential betting edge)
-
-### Profitability Context
-
-**To beat the bookmaker margin** (5.66% in one season of laliga):
-- Need to identify **value bets** where model probability > market probability by 25%+
-- Even 52% overall accuracy can be profitable if you only bet on high-confidence matches
-- Most successful strategies bet on <10% of matches
 
 
 ## Feature Quality Validation
@@ -331,8 +454,6 @@ Some features are **correlated by design**:
 3. **Missing features**: No injury info, head-to-head history, rest days
    - Future enhancement: -> Can be added if baseline model works
 
-4. **Single season**: Limited training data (~350 matches)
-   - Future enhancement: Multi-season features in Phase 2
 
 ---
 
@@ -341,22 +462,12 @@ Some features are **correlated by design**:
 ### Immediate Actions
 1. ✅ Feature engineering complete
 2. ✅ Documentation written
-3. ⬜ Build baseline Random Forest model
-4. ⬜ Evaluate feature importance
+3. ✅ Build baseline Random Forest model
+4. ✅ Evaluate feature importance
+5. ⬜ Model optimisation
+6. ⬜ Parameter tuning 
 5. ⬜ Analyze prediction errors
 
-### Future Enhancements (Phase 2)
-- Multi-season feature engineering
-- Home/away performance splits
-- Head-to-head history (last 3 meetings)
-- Rest days between matches
-- Season progress (early vs late season effects)
-
-### Possible questions to Investigate
-- Do longer rolling windows (L7, L10) improve predictions?
-- Is shot accuracy more predictive than total shots?
-- Can we identify specific match types where model excels/fails?
-- Which features are redundant and can be removed?
 
 ---
 

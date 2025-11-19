@@ -15,7 +15,10 @@ from footai.ml.feature_engineering.builders import (
     add_match_features, 
     add_odds_features, 
     add_draw_features, 
-    add_league_features
+    add_league_features,
+    add_momentum_features,
+    add_corners_features,
+    add_interaction_features
 )
 
 
@@ -114,6 +117,20 @@ def engineer_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5], verbos
         print("Adding league specific features...")
     enriched_df = add_league_features(enriched_df)
 
+    # Add momentum features
+    if verbose:
+        print("Adding momentum specific features...")
+    enriched_df = add_momentum_features(enriched_df)
+
+    # Add momentum features
+    if verbose:
+        print("Adding corner features...")
+    enriched_df = add_corners_features(enriched_df) 
+
+    if verbose:
+        print("Adding interaction features...")
+    enriched_df = add_interaction_features(enriched_df)
+    
     if verbose:
         print(f"Feature engineering complete!")
         print(f"Total columns: {len(enriched_df.columns)}")
