@@ -67,6 +67,18 @@ def add_odds_features(df: pd.DataFrame) -> pd.DataFrame:
         if 'HomeExpected' in df.columns:
             df['odds_elo_diff'] = df['odds_home_prob_norm'] - df['HomeExpected']
 
+    # Check if both opening (Avg) and closing (AvgC) odds exist
+    if all(col in df.columns for col in ['AvgH', 'AvgD', 'AvgA', 'AvgCH', 'AvgCD', 'AvgCA']):
+        # Calculate drift for each outcome (positive = odds lengthened)
+        df['draw_odds_drift'] = (df['AvgCD'] - df['AvgD']) / df['AvgD']
+        df['home_odds_drift'] = (df['AvgCH'] - df['AvgH']) / df['AvgH']
+        df['away_odds_drift'] = (df['AvgCA'] - df['AvgA']) / df['AvgA']
+        
+        # Sharp money indicator: draw odds shortened > 2% (negative drift)
+        df['sharp_money_on_draw'] = (df['draw_odds_drift'] < -0.02).astype(int)
+        
+        # Market uncertainty: magnitude of draw odds movement
+        df['odds_movement_magnitude'] = np.abs(df['draw_odds_drift'])
     return df
 
 def add_draw_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -210,7 +222,7 @@ def add_league_features(df):
     """Add league-specific contextual features for pooled models."""
     
     # League-level aggregates (historical draw rates, etc.)
-    league_stats = df.groupby('Division').agg({
+    league_stats = df.groupby('Div').agg({
         'FTR': lambda x: (x == 'D').mean(),  # draw_rate
         'FTHG': 'mean',  # avg_goals_home
         'FTAG': 'mean',  # avg_goals_away
@@ -218,14 +230,148 @@ def add_league_features(df):
                        'FTHG': 'league_avg_goals_home',
                        'FTAG': 'league_avg_goals_away'})
     
-    df = df.merge(league_stats, left_on='Division', right_index=True, how='left')
+    df = df.merge(league_stats, left_on='Div', right_index=True, how='left')
     
     # Home advantage by league
-    home_wins = df.groupby('Division')['FTR'].apply(lambda x: (x == 'H').mean())
-    df['league_home_advantage'] = df['Division'].map(home_wins)
+    home_wins = df.groupby('Div')['FTR'].apply(lambda x: (x == 'H').mean())
+    df['league_home_advantage'] = df['Div'].map(home_wins)
     
     # League identity (one-hot encoding for model to learn league-specific patterns)
     # Optional: Only if you want explicit league indicators
     # df = pd.get_dummies(df, columns=['Division'], prefix='is_league', drop_first=True)
+    
+    return df
+
+
+def add_momentum_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add momentum/trajectory features using rolling slope calculations.
+    
+    Calculates linear trend over last 5 matches for goals scored and PPG.
+    Positive slope = improving form, negative slope = declining form.
+    
+    Args:
+        df: DataFrame with L5 rolling features already computed
+        
+    Returns:
+        DataFrame with new momentum features:
+    
+    Note:
+        Requires that rolling features (goals_scored_L5, ppg_L5) have been
+        computed first via calculate_team_rolling_features().
+    """
+    from footai.ml.feature_engineering.rolling import calculate_slope
+    
+    # Sort by date to ensure temporal correctness
+    df = df.sort_values('Date').copy()
+    
+    # Initialize momentum columns
+    df['home_goals_trend_L5'] = np.nan
+    df['away_goals_trend_L5'] = np.nan
+    df['home_ppg_trend_L5'] = np.nan
+    df['away_ppg_trend_L5'] = np.nan
+    
+    # Process each team's home matches
+    if 'HomeTeam' in df.columns and 'home_goals_scored_L5' in df.columns:
+        for team in df['HomeTeam'].unique():
+            team_mask = df['HomeTeam'] == team
+            team_indices = df[team_mask].index
+            
+            # Get team's historical goals (sorted by date)
+            team_goals = df.loc[team_mask, 'home_goals_scored_L5']
+            team_ppg = df.loc[team_mask, 'home_ppg_L5']
+            
+            # Calculate slopes using rolling window
+            goals_slopes = team_goals.rolling(window=5, min_periods=5).apply(
+                calculate_slope, raw=False
+            )
+            ppg_slopes = team_ppg.rolling(window=5, min_periods=5).apply(
+                calculate_slope, raw=False
+            )
+            
+            # Assign back to dataframe
+            df.loc[team_indices, 'home_goals_trend_L5'] = goals_slopes.values
+            df.loc[team_indices, 'home_ppg_trend_L5'] = ppg_slopes.values
+    
+    # Process each team's away matches
+    if 'AwayTeam' in df.columns and 'away_goals_scored_L5' in df.columns:
+        for team in df['AwayTeam'].unique():
+            team_mask = df['AwayTeam'] == team
+            team_indices = df[team_mask].index
+            
+            # Get team's historical goals (sorted by date)
+            team_goals = df.loc[team_mask, 'away_goals_scored_L5']
+            team_ppg = df.loc[team_mask, 'away_ppg_L5']
+            
+            # Calculate slopes using rolling window
+            goals_slopes = team_goals.rolling(window=5, min_periods=5).apply(
+                calculate_slope, raw=False
+            )
+            ppg_slopes = team_ppg.rolling(window=5, min_periods=5).apply(
+                calculate_slope, raw=False
+            )
+            
+            # Assign back to dataframe
+            df.loc[team_indices, 'away_goals_trend_L5'] = goals_slopes.values
+            df.loc[team_indices, 'away_ppg_trend_L5'] = ppg_slopes.values
+    
+    # Calculate momentum differential
+    df['momentum_diff'] = df['home_ppg_trend_L5'] - df['away_ppg_trend_L5']
+    
+    return df
+
+
+def add_corners_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add corners-based features.
+    
+    High corners + low goals = defensive draw signal.
+    """
+    if 'home_corners_L5' in df.columns and 'away_corners_L5' in df.columns:
+        # Corners ratio (parity indicator)
+        df['corners_ratio'] = np.where(
+            df['away_corners_L5'] > 0,
+            df['home_corners_L5'] / df['away_corners_L5'],
+            np.nan
+        )
+        
+        # Defensive draw signal: high corners x low-scoring expectation
+        if 'under_2_5_prob' in df.columns:
+            avg_corners = (df['home_corners_L5'] + df['away_corners_L5']) / 2
+            df['defensive_draw_signal'] = avg_corners * df['under_2_5_prob']
+    
+    return df
+
+
+def add_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add interaction features (products of existing features).
+    
+    Explicit interactions help gradient boosting models capture
+    non-linear relationships between features.
+    
+    Args:
+        df: DataFrame with base features
+        
+    Returns:
+        DataFrame with 4 new interaction features
+    """
+    # Elo x Odds: Strength agreement between systems
+    if 'HomeElo' in df.columns and 'AwayElo' in df.columns and 'odds_home_prob_norm' in df.columns and 'odds_away_prob_norm' in df.columns:
+        elo_strength = (df['HomeElo'] - df['AwayElo']) / 400  # Normalize Elo diff
+        odds_strength = df['odds_home_prob_norm'] - df['odds_away_prob_norm']
+        df['elo_odds_agreement'] = elo_strength * odds_strength
+    
+    # Form x Odds: Recent form weighted by market confidence
+    if 'form_diff_L5' in df.columns and 'abs_odds_prob_diff' in df.columns:
+        df['form_odds_weighted'] = df['form_diff_L5'] * df['abs_odds_prob_diff']
+    
+    # Parity x Market uncertainty: Draw signal amplifier
+    if 'abs_elo_diff' in df.columns and 'draw_prob_dispersion' in df.columns:
+        df['parity_uncertainty'] = (1 / (1 + df['abs_elo_diff'])) * df['draw_prob_dispersion']
+    
+    # Odds movement x Parity: Late information on balanced matches
+    if 'draw_odds_drift' in df.columns and 'abs_odds_prob_diff' in df.columns:
+        df['movement_parity_signal'] = df['draw_odds_drift'] * (1 - df['abs_odds_prob_diff'])
     
     return df
