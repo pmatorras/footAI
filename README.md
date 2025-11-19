@@ -30,7 +30,7 @@ This project fetches football data from the main European leages, from [**footba
 - Carries Elo across seasons (with a `decay-factor` set to 0.95 by default)
 - Assigns newly promoted teams the Elo ranking from last season's demoted teams.
 
-It also produces plots for each given season and an interactive dashboard. The ML component trains RandomForest models on engineered features (Elo, odds, L5 form, draw-specific signals) for outcome prediction (H/D/A), with v1.0 locking the `draw_optimized` set for ~55% accuracy and ~33% draw recall on SP1 data (2122-2425 seasons). [file:321]
+It also produces plots for each given season and an interactive dashboard. The ML component trains RandomForest models on engineered features (Elo, odds, L5 form, draw-specific signals, league context, odds movement) for outcome prediction (H/D/A), with v0.3 achieving **50.57% accuracy** and **38.17% draw recall** on Top 5 European leagues (2015-2025 data, ~8000 matches).
 
 ## Requirements
 
@@ -56,7 +56,10 @@ footai promotion-relegation --country SP --season-start 23,24
 footai elo --country SP --div SP1 --season-start 22,23,24,25 --multiseason --elo-transfer --decay-factor 0.95
 
 # Train ML model with draw_optimized features (v1.0 default)
-footai train --country SP --div SP1 --season-start 23,24 --elo-transfer --features-set draw_optimized -m 
+footai train --country SP --div SP1 --season-start 23,24 --elo-transfer --features-set odds_optimized  -m 
+
+# Train ML model on multiple countries (Top 5 leagues)
+footai train --multi-countries --countries SP IT EN DE FR --season-start 15 --division tier1 --features-set odds_optimized --elo-transfer
 
 # Plot the results
 footai plot --country SP --div SP1 --season-start 24 --multiseason --elo-transfer
@@ -75,7 +78,6 @@ source .venv/bin/activate  \# On Windows: .venv\Scripts\activate
 
 # Install in development mode
 pip install -e .
-
 ```
 
 ## Usage
@@ -83,31 +85,33 @@ footAI provides four main commands to download data, calculate Elo ratings, trac
 
 ### Commands
 
-**download** - Fetch match data from football-data.co.uk
+**download** - Fetch match data from football-data.co.uk for top 5 european leagues
 ```bash
-footai download --country SP --season-start 24
-footai download --country EN --season-start 23,24 -m  # Multiple seasons
+footai download --country SP,IT,EN,DE,FR --season-start 15-25
 ```
 
 **promotion-relegation** - Identify promoted/relegated teams between seasons
 ```bash
-footai promotion-relegation --country SP --season-start 23,24
+footai promotion-relegation --country SP,IT,EN,DE,FR --season-start 15-25
 ```
 
 **elo** - Calculate Elo rankings for teams
 ```bash
-footai elo --country SP --season-start 23,24
-footai elo --season-start 23,24 -m --decay-factor 0.95  # Multi-season with decay
+footai elo --country SP,IT,EN,DE,FR --season-start 15-25
+footai elo --season-start 23,24 -multi-season --decay-factor 0.95  # Multi-season with decay
 ```
 **features** necessary for the ML training 
 ```bash
-footai features --country SP --div SP1 --season-start 22,23,24,25 -m
+footai features --country SP,IT,EN,DE,FR --div SP1 --season-start 15-25 -multi-season
 ```
-**train** - Train ML models (RandomForest default; supports multi-season, multi-division, Elo transfer)
+**train** - Train ML models (RandomForest default; supports multi-season, multi-division, multi-country, Elo transfer)
 ```bash
-footai train --country SP --div SP1,SP2 --season-start 23,24 --elo-transfer  -m 
-```
+#Train a model per country and division
+footai train --country SP,IT,EN,DE,FR --div tier1 --season-start 15-25 --elo-transfer  -multi-season 
 
+#Train a combined model for top 5 country first divisions
+footai train --country SP,IT,EN,DE,FR --div tier1 --season-start 15-25 --elo-transfer  -multi-country --feature-set=odds_lite
+```
 
 **plot** - Generate interactive visualizations of Elo progression
 ```bash
@@ -122,8 +126,10 @@ All subcommands (`download`, `elo`, `plot`) support these options:
 | Flag | Description | Example |
 |------|-------------|---------|
 | `--country` | Country code (default: SP) | `--country EN` |
-| `--div` | Division(s), comma-separated | `--div SP1,SP2` |
+| `--division, -div` | Division(s), comma-separated. Can take also `tier1/tier2` as possible options | `--div SP1,SP2` |
 | `--season-start` | Season start year(s), comma-separated | `--season-start 22,23,24` |
+| `--multi-countries` | Enable multi-country mode (train on multiple leagues) | `--multi-countries` |
+| `--countries` | List of countries (requires `--multi-countries`) | `--countries SP IT EN` |
 | `-v, --verbose` | Show detailed output | `-v` |
 | `--processed-dir` | Directory for processed data | `--processed-dir my_output` |
 
@@ -140,20 +146,22 @@ All subcommands (`download`, `elo`, `plot`) support these options:
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--model` | Chose what model to train | `rf` |
-| `--features-set` | ML features (`baseline/extended/draw_optimized`; default: `draw_optimized`) | `--features-set baseline` |
-| `-m, --multiseason` | Calculate across multiple seasons | `-m` |
-| `--multi-division` | Train on combined divisions (e.g., I1+I2) | `False` |
+| `--features-set` | ML features (full list in `FEATURE_SETS` in [definitions.py](/src/footai/ml/feature_engineering/definitions.py). default: `odds_lite`) | `--features-set baseline` |
+| `-ms, --multiseason` | Calculate across multiple seasons | `False` |
+| `-md, --multi-division` | Train on combined divisions (e.g., I1+I2) | `False` |
+| `-mc, --multi-countries` | Train on multiple countries simultaneously | `False` |
 | `--nostats` | Suppress detailed statistics output | `False` |
 
 
 ## Model Configuration
 
-The ML pipeline uses a RandomForestClassifier (`scikit-learn`) with balanced class weights for outcome prediction (H/D/A). Key v1.0 decisions (Nov 11, 2025; see [docs/feature_configuration_decision.md](docs/feature_configuration_decision.md)):
+The ML pipeline uses a RandomForestClassifier (`scikit-learn`) with balanced class weights for outcome prediction (H/D/A).  After systematic testing across 5 phases (Nov 19, 2025; see [docs/feature_configuration.md](docs/feature_configuration.md)):
 
-- **Default Features**: `draw_optimized` (~28 features: baseline Elo/odds/form + extended L5 stats + skimmed draw signals like consensus probs, under_2_5_zscore, AH diffs). Improves draw recall to ~33% vs. ~25% baseline, at 55% overall acc.
-- **Performance (SP1 2122-2425, ~760 matches)**: Accuracy of 55.0% (test), draw recall 0.333, F1_draw ~0.328. (~3.1% test-CV gap).
-- **Training**: 3-fold temporal CV; `n_estimators=100`, `max_depth=10`. 
-- **CLI**: Use `--features-set draw_optimized` for v1.0; alternatives: `baseline` (12 features, lean), `extended` (~18 features).
+- **Default Features**: `odds_optimized` (28 features: 12 baseline + 8 draw_optimized + 3 league + 5 odds_movement). Achieves **38.17% draw recall** vs. 34.35% baseline (5 European leagues, 2015-2025).
+- **Alternative**: `odds_lite` (25 features: 12 baseline + 5 draw_lite + 3 league + 5 odds_movement). Nearly identical performance (38.08% DR).
+- **Performance (Top 5 leagues, 2015-2025, ~8000 matches)**: Accuracy 50.57% (test), draw recall 38.17%, F1_draw ~0.35.
+- **Training**: 3-fold temporal CV; `n_estimators=100`, `max_depth=10`.
+- **CLI**: Use `--features-set odds_optimized` (default); alternatives: `odds_lite` (simpler), `baseline` (12 features, lean).
 
 ---
 
@@ -202,6 +210,7 @@ Examples:
 - `EN_2223_E0_rf.pkl` → England, 2022/23, Premier League, model
 
 **Seasons:** `2324` = 2023/24, `2223` = 2022/23, etc.
+**Multicountry:** described separated by `_` (e.g  `SP_IT_EN_DE_FR`)
 
 ### Training Results
 
@@ -264,42 +273,32 @@ src/footai/
 
 ## Roadmap
 
-### ✅ Current Status (v1.0 - November 2025)
+### Current Status (v1.0 - November 2025)
 
 **Completed:**
 - Elo rating engine with multi-season support and decay
 - Promotion/relegation tracking with Elo transfer
-- Feature engineering: `baseline` (12), `extended` (18), `draw_optimized` (28)
+- Feature engineering: `baseline` (12), `odds_lite` (25), `odds_optimized` (28)
+- Systematic feature testing (5 phases): draw features, league context, odds movement
 - RandomForest training with temporal cross-validation
 - Training result logging (`.txt` + `.json` metrics)
 - Multi-country support (SP, IT, EN, DE, FR)
 - Multi-division training (e.g., Serie A + Serie B combined)
 
-**Performance Benchmarks (SP1, 2122-2425, ~760 matches):**
-- Test accuracy: **55.0%**
-- Draw recall: **33.3%** (vs. 25% baseline)
-- Draw F1: **0.328**
-- CV gap: ~3.1%
-
+**Performance Benchmarks (Top 5 European Leagues, 2015-2025, ~8000 matches):**
+- Test accuracy: **50.57%**
+- Draw recall: **38.17%** (vs. 34.35% baseline, +3.82% improvement)
+- Draw F1: **~0.35**
+- Production features: `odds_optimized` (28 features)
 ---
 
-### 🔄 In Development (v1.1 - Q1 2026)
+### In Development (v1.1)
 
 **Model Improvements:**
 - Hyperparameter tuning (grid search for `max_depth`, `n_estimators`, `min_samples_split`)
-- Compare GradientBoosting vs. XGBoost vs. LightGBM on `draw_optimized` features
 - Probability calibration (Platt scaling, isotonic regression) for better confidence estimates
 - SHAP explainability (feature importance per match, counterfactual analysis)
 
-**Multi-League Optimization:**
-- Validate `draw_optimized` on IT (Serie A), EN (Premier League), DE (Bundesliga)
-- Per-league feature tuning (e.g., "low scoring" bias for Serie A vs. Premier League)
-- Cross-league transfer learning (train on SP+IT, test on EN)
-
-**Infrastructure:**
-- Add `footai backtest` command for historical strategy evaluation
-- Add `footai compare` command to compare feature sets side-by-side
-- Results dashboard (Streamlit/Dash) to visualize training runs from `results/*.json`
 
 ---
 
