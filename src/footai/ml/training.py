@@ -9,9 +9,9 @@ import pandas as pd
 import numpy as np
 import joblib
 from pathlib import Path
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
-
+from sklearn.preprocessing import LabelEncoder
 from footai.ml.models import get_models
 from footai.utils.config import select_features
 from footai.ml.evaluation import print_cv_strategy, print_classification, print_confusion, print_per_division, print_feature_importance
@@ -97,7 +97,8 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     # Prepare X, y
     X = df[feature_cols]
     y = df['FTR']  # Home/Draw/Away
-
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)  # H,D,A → 0,1,2
     assert not X.empty, "Feature DataFrame is empty!"
     assert len(X) == len(y), "Mismatch in features and targets length"
 
@@ -129,7 +130,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     for fold, (train_idx, test_idx) in enumerate(tscv.split(X)):
         X_t, X_v = X.iloc[train_idx], X.iloc[test_idx]
-        y_t, y_v_raw = y.iloc[train_idx], y.iloc[test_idx]
+        y_t, y_v_raw = y_encoded[train_idx], y_encoded[test_idx]
         
         if use_div_weights:
             # Build per-fold division weights
@@ -170,9 +171,10 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     y_test = final_y_test
     y_pred = final_y_pred
     y_pred_proba = model.predict_proba(X.iloc[test_idx])  # From last fold's test_idx
-
+    y_test_str = label_encoder.inverse_transform(y_test)
+    y_pred_str = label_encoder.inverse_transform(y_pred)
     accuracy = cv_acc[-1]
-    cm = confusion_matrix(y_test, y_pred, labels=['H', 'D', 'A'])
+    cm = confusion_matrix(y_test_str, y_pred_str, labels=['H', 'D', 'A'])
     # Calculate per-class metrics from confusion matrix
     # cm[i,j] = true label i, predicted label j
     home_precision = cm[0,0] / cm[:,0].sum() if cm[:,0].sum() > 0 else 0
@@ -182,7 +184,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     away_precision = cm[2,2] / cm[:,2].sum() if cm[:,2].sum() > 0 else 0
     away_recall = cm[2,2] / cm[2,:].sum() if cm[2,:].sum() > 0 else 0
 
-    report = classification_report(y_test, y_pred, labels=['H','D','A'], zero_division=0)
+    report = classification_report(y_test_str, y_pred_str, labels=['H','D','A'], zero_division=0)
 
     print(f"Test Accuracy: {accuracy:.3f} ({accuracy*100:.1f}%)")
 
@@ -193,8 +195,8 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     # Around line 186-190 in training.py, after print_per_division()
     if 'Division' in df.columns:
-        df_test = df.iloc[-len(y_test):].copy()
-        df_test['Prediction'] = y_pred
+        df_test = df.iloc[-len(y_test_str):].copy()
+        df_test['Prediction'] = y_pred_str
         if stats: print_per_division(df_test, pred_col='Prediction')
         
         # NEW: Capture per-division metrics for JSON
@@ -229,7 +231,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
     else:
         per_division_results = None
 
-    feature_importance = print_feature_importance(model, feature_cols, feature_set, stats)
+    feature_importance = 'neural networks do not have feature importance' if 'nn' in args.model else print_feature_importance(model, feature_cols, feature_set, stats)
     results = {
         'model': model,
         'X_test': final_x_test,
@@ -238,7 +240,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         'y_pred_proba': y_pred_proba,
         'feature_names': feature_cols,
         'accuracy': accuracy,
-        'feature_importance': feature_importance.to_dict('records'),
+        'feature_importance': feature_importance,
         'confusion_matrix': {
             'labels': ['H', 'D', 'A'],
             'matrix': cm.tolist()
