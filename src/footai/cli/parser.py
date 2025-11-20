@@ -1,6 +1,7 @@
 '''Command-line interface setup.'''
 import argparse
-from footai.utils.config import COUNTRIES, RAW_DIR, PROCESSED_DIR, FEATURES_DIR, FEATURE_SETS
+from footai.utils.config import RAW_DIR, PROCESSED_DIR, FEATURES_DIR, FEATURE_SETS
+from footai.ml.models import MODEL_METADATA
 from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
 
 def create_parser():
@@ -36,7 +37,7 @@ def create_parser():
         sp.add_argument( '--processed-dir', type=str, default=PROCESSED_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--features-dir', type=str, default=FEATURES_DIR, help='Directory to save CSV files (default: football_data)')
         sp.add_argument( '--features-set', type=str, default='baseline', help='Set of features to train on. default baseline', choices=FEATURE_SETS.keys()) 
-        sp.add_argument( '--model', type=str, default='rf', help='Model to run', choices=['rf', 'rf_cal', 'gb'])       
+        sp.add_argument( '--model', type=str, default='rf', help='Model to run', choices=MODEL_METADATA.keys())       
         sp.add_argument('-ms', '--multi-season', action='store_true', help='Calculate over multiple seasons')
         sp.add_argument('-v', '--verbose', action='store_true', help='Verbose additional info')
         sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)

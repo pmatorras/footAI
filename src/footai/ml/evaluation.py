@@ -157,7 +157,7 @@ def print_feature_importance(model, feature_cols, feature_set, stats=False):
         print(f"Feature Importance ({feature_set}):")
         print("-"*70)
         print(importance_df.head(30).to_string(index=False))
-    return importance_df
+    return importance_df.to_dict('records')
 
 def write_metrics_json(json_path, country, divisions, feature_set, results, seasons, model='rf', cv_folds=None):
     """Write structured training metrics to JSON."""

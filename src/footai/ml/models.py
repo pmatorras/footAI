@@ -6,6 +6,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.neural_network import MLPClassifier
+
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 import warnings
@@ -37,7 +39,43 @@ MODEL_METADATA = {
         "description": "Random forest classifier with balanced class weights",
         "color": "#2ca02c",
         "marker": "^"
+    },
+    "xgb": {
+        "name": "XGBoost",
+        "short_name": "XGB",
+        "description": "Gradient boosting with histogram-based learning",
+        "color": "#9467bd",
+        "marker": "D"
+    },
+    "lgbm": {
+        "name": "LightGBM",
+        "short_name": "LGBM",
+        "description": "Fast gradient boosting with leaf-wise growth",
+        "color": "#8c564b",
+        "marker": "v"
+    },
+    "gb": {
+        "name": "Gradient Boosting",
+        "short_name": "GB",
+        "description": "Sklearn gradient boosting classifier",
+        "color": "#e377c2",
+        "marker": "p"
+    },
+    "gb_deep": {
+        "name": "Gradient Boosting (extra layers)",
+        "short_name": "GB_deep",
+        "description": "Sklearn gradient boosting classifier",
+        "color": "#e377c2",
+        "marker": "p"
+    },
+    "nn": {
+        "name": "Neural network sklearn test",
+        "short_name": "GB_deep",
+        "description": "Sklearn neural network",
+        "color": "#3b3439",
+        "marker": "p"
     }
+
 }
 
 def get_model_name (model_key, short_name=False):
@@ -125,6 +163,9 @@ def get_models(args):
             ))
         ]),
         'gb': Pipeline([
+        ("sanitize", sanitize),
+        ("impute", SimpleImputer(strategy="median")),
+        ("scaler", "passthrough"),
         ("clf", GradientBoostingClassifier(
             n_estimators=50,
             max_depth=3,
@@ -134,7 +175,21 @@ def get_models(args):
             n_iter_no_change=10,
             random_state=42
         ))
-    ]),
+        ]),
+        'gb_deep': Pipeline([
+        ("sanitize", sanitize),
+        ("impute", SimpleImputer(strategy="median")),
+        ("scaler", "passthrough"),
+        ("clf", GradientBoostingClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            learning_rate=0.05,
+            subsample=0.8,
+            min_samples_split=20,
+            min_samples_leaf=5,
+            random_state=42
+        ))
+        ]),
         # XGBoost - same pipeline structure
         "xgb": Pipeline([
             ("sanitize", sanitize),
@@ -143,12 +198,12 @@ def get_models(args):
             ("clf", XGBClassifier(
                 n_estimators=n_estimators,
                 max_depth=max_depth,
-                learning_rate=0.01, #0.05
+                learning_rate=0.05, #0.01
                 subsample=0.8, 
                 colsample_bytree=colsample,  
-                reg_alpha=0.5, #0.01 
+                reg_alpha=0.1, #0.01 
                 reg_lambda=1.0, #2.0
-                scale_pos_weight=1, 
+                #scale_pos_weight=1, 
                 random_state=42,
                 n_jobs=-1,
                 tree_method='hist', 
@@ -165,19 +220,35 @@ def get_models(args):
                 force_col_wise=True,
                 n_estimators=n_estimators,
                 max_depth=max_depth,
-                learning_rate=0.01, #0.05
+                learning_rate=0.05, #0.01
                 subsample=0.8,
                 subsample_freq=1,  
                 colsample_bytree=colsample,
                 reg_alpha=0.5, #0.01 
                 reg_lambda=1.0, #2.0
-                num_leaves=8,  
-                min_child_samples=50,  
-                class_weight='balanced',  
+                num_leaves=15, #8  
+                min_child_samples=20, #50  
+                #class_weight='balanced',  
                 random_state=42,
                 n_jobs=-1,
                 verbose=-1  # Suppress training logs
             ))
         ]),
+        'nn' : Pipeline([
+            ("sanitize", sanitize),
+            ("impute", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),  # Critical for NNs
+            ("clf", MLPClassifier(
+                hidden_layer_sizes=(128, 64, 32),  # 3 hidden layers
+                activation='relu',
+                solver='adam',
+                learning_rate_init=0.001,
+                max_iter=200,
+                early_stopping=True,
+                validation_fraction=0.1,
+                random_state=42
+            ))
+        ])
+
     }
     return models
