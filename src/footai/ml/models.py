@@ -77,6 +77,24 @@ MODEL_METADATA = {
     }
 
 }
+TUNED_RF_PARAMS = {
+    'tier1': {
+        'n_estimators': 100,
+        'max_depth': 5,
+        'min_samples_split': 20,
+        'min_samples_leaf': 1,
+        'max_features': 'sqrt',
+        'class_weight': 'balanced_subsample'
+    },
+    'multicountry': {
+        'n_estimators': 200,
+        'max_depth': 5,
+        'min_samples_split': 10,
+        'min_samples_leaf': 8,
+        'max_features': 'sqrt',
+        'class_weight': 'balanced'
+    }
+}
 
 def get_model_name (model_key, short_name=False):
     """
@@ -101,13 +119,22 @@ def build_sanitize():
     return FunctionTransformer(_sanitize_infinities, validate=False)
 
 def get_models(args):
+    use_multicountry = getattr(args, 'multi_countries', False) if args else False
+    rf_config = TUNED_RF_PARAMS['multicountry'] if use_multicountry else TUNED_RF_PARAMS['tier1']
+
     #Include defaults if args not defined 
-    n_estimators = getattr(args, 'tree_nestimators', 100) if args else 50
-    max_depth = getattr(args, 'tree_max_depth', 10) if args else 10
+    n_estimators = getattr(args, 'tree_nestimators', None) if args else None #50
+    n_estimators = n_estimators if n_estimators else rf_config['n_estimators']
+
+    max_depth = getattr(args, 'tree_max_depth', None) if args else None #10
+    max_depth = max_depth if max_depth else rf_config['max_depth']
+
     max_samples = getattr(args, 'tree_max_samples', None) if args else None
+    
     max_features = getattr(args, 'tree_max_features', 'log2') if args else 'log2'
+    max_features = max_features if max_features else rf_config['max_features']
+
     colsample = getattr(args, 'tree_colsample', 0.8) if args else 0.8
-    #getattr(args, 'tree_max_features', 0.4) if args else 0.4
 
     sanitize = build_sanitize()
     models = {
@@ -130,16 +157,17 @@ def get_models(args):
             ("sanitize", sanitize),                    # replace ±inf with NaN
             ("impute", SimpleImputer(strategy="median")),  # handle NaN
             ("scaler", "passthrough"),  # trees don"t need scaling
-            ("clf", RandomForestClassifier(n_estimators=n_estimators, 
-                                           max_depth=max_depth,
-                                           min_samples_split=0.02,
-                                           min_samples_leaf=0.01,
-                                           max_samples=max_samples,
-                                           max_features=max_features,
-                                           random_state=42,
-                                           n_jobs=-1, 
-                                           class_weight="balanced"
-                                        ))
+            ("clf", RandomForestClassifier(
+                n_estimators=n_estimators, 
+                max_depth=max_depth,
+                min_samples_split=rf_config['min_samples_split'], #0.02
+                min_samples_leaf=rf_config['min_samples_leaf'], #0.01
+                max_samples=max_samples,
+                max_features=max_features,
+                random_state=42,
+                n_jobs=-1, 
+                class_weight="balanced"
+            ))
         ]),
 
         "rf_cal": Pipeline([

@@ -16,7 +16,7 @@ def tune_rf_hyperparameters(X, y, label_encoder, n_iter=30, verbose=True):
     from sklearn.metrics import make_scorer,balanced_accuracy_score, recall_score
 
     draw_label = label_encoder.transform(['D'])[0]
-    
+
     print(f"\n{'='*70}")
     print("HYPERPARAMETER TUNING")
     print(f"{'='*70}")
@@ -24,7 +24,7 @@ def tune_rf_hyperparameters(X, y, label_encoder, n_iter=30, verbose=True):
     print(f"Draw label encoded as: {draw_label}")
     print(f"Iterations: {n_iter}")
     print(f"CV folds: 3 (TimeSeriesSplit)")
-    print(f"Scoring: 60% balanced_acc + 40% draw_recall")
+    print(f"Scoring: 50% balanced_acc + 50% draw_recall")
     
     # Define scorer inside where it can access draw_label
     def draw_focused_scorer(y_true, y_pred):
@@ -68,9 +68,7 @@ def tune_rf_hyperparameters(X, y, label_encoder, n_iter=30, verbose=True):
     scorer = make_scorer(draw_focused_scorer)
 
     search = RandomizedSearchCV( rf, param_dist, n_iter=n_iter, cv=tscv, scoring=scorer, n_jobs=-1, verbose=1 if verbose else 0, random_state=42)
-    print("the scorer is", scorer)
-    if verbose:
-        print("Starting search...")
+    print("Starting search...")
     
     search.fit(X, y)
 
