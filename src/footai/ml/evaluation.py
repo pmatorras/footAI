@@ -159,15 +159,25 @@ def print_feature_importance(model, feature_cols, feature_set, stats=False):
         print(importance_df.head(30).to_string(index=False))
     return importance_df.to_dict('records')
 
-def write_metrics_json(json_path, country, divisions, feature_set, results, seasons, model='rf', cv_folds=None):
+def write_metrics_json(json_path, country, divisions, feature_set, results, seasons, cv_folds=None):
     """Write structured training metrics to JSON."""
+    model = results.get('model', None)
+    if model is not None and hasattr(model, 'named_steps') and 'clf' in model.named_steps:
+        clf = model.named_steps['clf']
+        model_info = {
+            'model_type': type(clf).__name__,
+            'hyperparameters': clf.get_params()
+        }
+    else:
+        print("am i in the else?=", model, type(model))
+        model_info = str(model)  # fallback to string
     metrics = {
         'metadata': {
             'country': country,
             'divisions': divisions,
             'seasons': seasons,
             'feature_set': feature_set,
-            'model': model,
+            'model': model_info,
             'n_splits' : len(cv_folds) if cv_folds else 3,
             'timestamp': datetime.now().isoformat()
         },

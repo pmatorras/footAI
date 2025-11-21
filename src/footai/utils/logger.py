@@ -25,7 +25,7 @@ class TeeLogger:
 
 
 @contextmanager
-def log_training_run(country, divisions, feature_set, seasons, model='rf', multidiv=False, multicountry=False, tier=None, results_dir='results'):
+def log_training_run(country, divisions, feature_set, seasons, model='rf', multidiv=False, multicountry=False, tier=None, tune=None, results_dir='results'):
     """
     Context manager for logging training runs to file.
     
@@ -45,6 +45,7 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', multi
     """
     timestamp = datetime.now().strftime('%Y%m%d')
     country_str = '_'.join(country) if multicountry else country
+    tune_str = 'tune' if tune else ''
     season_str = f"{seasons[0]}_to_{seasons[-1]}" if len(seasons) > 1 else seasons[0]
     # Format division string for filename and header
     if tier:
@@ -71,7 +72,7 @@ def log_training_run(country, divisions, feature_set, seasons, model='rf', multi
     out_dir = Path(results_dir) / country_str
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    filename = f"{div_str}_{season_str}_{feature_set}_{model}_{timestamp}"
+    filename = f"{div_str}_{season_str}_{feature_set}_{model}_{tune_str}_{timestamp}"
     txt_path = out_dir / f"{filename}.txt"
     json_path = txt_path.with_suffix('.json')
     

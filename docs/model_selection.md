@@ -20,7 +20,7 @@ Objective: Maximize draw recall while maintaining reasonable accuracy
 ### 1. Random Forest: Current PRODUCTION MODEL
 
 **Configuration**:
-```
+```python
 RandomForestClassifier(
 n_estimators=100,
 max_depth=10,
@@ -45,7 +45,7 @@ random_state=42
 
 **Shallow** (conservative):
 
-```
+```python
 GradientBoostingClassifier(
 n_estimators=50,
 max_depth=3,
@@ -55,7 +55,7 @@ subsample=0.5
 ```
 
 **Deep** (aggressive):
-```
+```python
 GradientBoostingClassifier(
 n_estimators=100,
 max_depth=10,
@@ -80,7 +80,7 @@ subsample=0.8
 ### 3. XGBoost
 
 **Configuration**:
-```
+```python
 XGBClassifier(
 n_estimators=100,
 max_depth=10,
@@ -107,7 +107,7 @@ reg_lambda=1.0
 ### 4. LightGBM
 
 **Configuration**:
-```
+```python
 LGBMClassifier(
 n_estimators=100,
 max_depth=10,
@@ -180,92 +180,192 @@ Correct draws: 74
 DR: 6.28%
 ```
 ---
+## Hyperparameter Tuning
 
-## Portfolio Strategy Considerations
+### Methodology
 
-### Two-Model Approach
+Hyperparameter tuning was performed using `RandomizedSearchCV` with:
+- **Cross-validation**: TimeSeriesSplit (3 folds) to respect temporal ordering
+- **Scoring metric**: Custom draw-weighted scorer combining balanced accuracy and draw recall
+- **Iterations**: 100 parameter combinations tested
+- **Dataset**: Tier1 multi-country (SP, IT, EN, DE, FR), 2015-16 to 2025-26
 
-The hypothesis is that match prediction could benefit from a **portfolio strategy**:
+### Scoring Function
 
-1. **Generalist model** (for draw prediction) → **RF confirmed best** (38.17% DR)
-2. **Specialist model** (for H/A prediction when draw probability is low) → **under evaluation**
+To address poor draw prediction (minority class ~25%), we used a custom scorer:
 
-### Observed H/A Performance
-
-When evaluated on H/A matches only (excluding draws from test set), the models showed:
-
-
-| Model | H/A Accuracy (on H/A subset) | Overall Accuracy | Draw Recall |
-| :-- | :-- | :-- | :-- |
-| Random Forest | 77.6% | 50.42% | 38.08% |
-| XGBoost | 73.7% | 53.18% | 8.82% |
-| LightGBM | 73.0% | 53.57% | 4.58% |
-| Neural Network | 72.9% | 53.89% | 6.28% |
-
-### Specialist Model Candidates
-
-Three candidates for H/A specialist role:
+```python
+score = 0.5 * balanced_accuracy + 0.5 * draw_recall
+```
 
 
-| Candidate | H/A Accuracy | Status |
-| :-- | :-- | :-- |
-| **Random Forest** (existing) | **77.6%** | Best performer, already trained |
-| **LightGBM** (existing) | 73.0% | -4.6% vs RF |
-| **XGBoost** (existing) | 73.7% | -3.9% vs RF |
-| Neural Network | 72.9% | -4.7% vs RF |
-| RF Specialist (H/A only training) | Unknown | Requires additional training and testing |
+This balances overall performance with explicit draw class optimization.
 
-### Next Steps Required
+### Search Space
+```python
+    param_dist = {
+        'n_estimators': [100, 200, 300, 500],
+        'max_depth': [5, 8, 10, 15, 20, None],
+        'min_samples_split': [0.01, 0.02, 0.05, 2, 5, 10, 20],
+        'min_samples_leaf': [0.005, 0.01, 0.02, 1, 2, 4, 8],
+        'max_features': ['sqrt', 'log2', 0.3, 0.5],
+        'class_weight': ['balanced', 'balanced_subsample', None],
+        'bootstrap': [True, False],
+    }
+```
 
-**Phase 7**: Specialist Model Evaluation
 
-1. Determine if portfolio approach provides meaningful improvement over single model
-2. Test candidate models for specialist role:
-    - Use existing models (RF/LGBM/XGB) with adaptive routing
-    - Optionally train dedicated RF specialist on H/A-only dataset
-3. Evaluate portfolio performance vs. single generalist model
-4. Decision: single model vs. portfolio based on empirical results
+### Results
+#### 1. Tier1 multi-country (SP, IT, EN, DE, FR) 
 
-> Check whether the observed H/A accuracy differences (4-5% advantage for RF) justify a portfolio approach, or if a single RF model is sufficient for production.
+Best configuration (odds_optimized features):
+- `n_estimators`: 100
+- `max_depth`: 5
+- `min_samples_split`: 20
+- `min_samples_leaf`: 1
+- `max_features`: 'sqrt'
+- `class_weight`: 'balanced_subsample'
+- `bootstrap`: True
 
-***
+Performance:
+- Average Accuracy: 50.5%
+- Average CV Draw Recall: 36.2%
+- Fold 3 (most recent): 50.8% acc, 38.3% draw recall
+
+Key Findings:
+
+- Max_depth=5 outperformed deeper trees (15-30), suggesting draws require simple decision boundaries to avoid overfitting the minority class.
+- Split=20 (vs 2) provides better regularization for draw prediction.
+- Limiting feature subsets to sqrt(n_features) prevents overfitting.
+- Standard balanced_accuracy optimized to 51.3% acc but only 22.5% draw recall. Custom scorer achieved 50.5% acc with 38.3% draw recall.
+
+
+#### Tier1+Tier2 Multi-Country Model
+
+To address poor tier2 draw recall found by training tier2 only models, tier2 predictions are taken from a multi-country model trained on combined tier1+tier2. This model was also optimized:
+
+
+Best configuration (odds_optimized features):
+
+- `n_estimators`: 200
+- `max_depth`: 5
+- `min_samples_split`: 10
+- `min_samples_leaf`: 8
+- `max_features`: 'sqrt'
+- `class_weight`: 'balanced'
+- `bootstrap`: True
+
+Overall Performance:
+
+- Test Accuracy: 46.5%
+- CV Draw Recall: 36.3% ± 1.4%
+
+
+Tier2 Performance Comparison (Baseline vs Tuned):
+
+
+| Division | Baseline Acc | Tuned Acc | Baseline DR | Tuned DR | DR Improvement |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| D2 | 42.0% | 43.1% | 18.9% | 24.4% | **+5.5%** |
+| E1 | 41.9% | 40.8% | 30.1% | 31.4% | +1.3% |
+| FR2 | 41.8% | 41.0% | 43.3% | 45.3% | +2.0% |
+| I2 | 44.1% | 44.1% | 59.0% | 59.3% | +0.3% |
+| SP2 | 42.4% | 42.7% | 53.1% | 55.0% | +1.9% |
+| **Average** | **42.4%** | **42.3%** | **40.9%** | **43.1%** | **+2.2%** |
+
+**Key Findings:**
+
+- Tuning improved tier2 draw recall by **+2.2%** on average while maintaining accuracy
+- D2 (Bundesliga 2) saw the largest improvement (+5.5% DR), fixing its worst-case baseline of 18.9%
+- More trees (200 vs 100) and higher regularization (split=10, leaf=8) helped tier2 generalization
+- Model successfully balances tier1 and tier2 performance for multi-division deployment
+
+## Production Model Architecture
+
+### Tier-Based Model Strategy
+
+After evaluating various approaches, the production system uses **two separate models** optimized for different league tiers:
+
+**1. Tier1 Model** (for top-division predictions)
+
+- Trained on: Tier1 data only (SP1, EN, IT1, DE1, FR1)
+- Features: odds_optimized (28 features)
+- Performance: 50.8% accuracy, 36.1% draw recall
+- Hyperparameters: n=100, depth=5, split=20, leaf=1
+
+**2. Multi-Country Model** (for tier2 predictions)
+
+- Trained on: Tier1 + Tier2 data (all 10 divisions)
+- Features: odds_optimized (28 features)
+- Performance: 42.3% accuracy, 43.1% avg tier2 draw recall
+- Hyperparameters: n=200, depth=5, split=10, leaf=8
+
+
+### Rationale
+
+**Why not a single model for all tiers?**
+
+- Tier1-only data provides optimal performance for tier1 leagues (most predictable, highest quality data)
+- Tier2 suffered from poor draw recall (19.5% baseline) when trained on tier2-only data
+- Adding tier1 data to tier2 training improved tier2 draw recall by +22% (19.5% → 43.1%)
+
+**Why not specialist H/A models?**
+
+- Initial hypothesis: route predictions based on draw probability (high prob → generalist, low prob → specialist)
+- Reality: Random Forest already achieves 77.6% H/A accuracy as a generalist, with no viable specialist candidates showing meaningful improvement
+- Added complexity not justified by empirical results
+
+For detailed discussion of architecture decisions, see `model_architecture_decisions.md`.
+
+### Deployment Strategy
+
+**Production routing logic:**
+
+```python
+if division in ['SP1', 'EN', 'IT1', 'DE1', 'FR1']:
+    model = tier1_model  # Tier1-only trained
+else:
+    model = multicountry_model  # Tier1+Tier2 trained
+```
+
+This maximizes performance for both tier groups while avoiding overfitting and data scarcity issues.
+
 
 ## Conclusion
 
 ### Phase 6 Summary: Model Selection Complete
 
-**Draw Prediction Winner**: Random Forest (38.17% DR)
+From the models tested, the best performant was the random Forest:
 
 - All gradient boosting variants (sklearn GB, XGBoost, LightGBM) failed at picking draws (<12% DR)
-- Neural networks showed same minority class problem (6.28% DR)
+- Neural networks showed the same minority class problem (6.28% DR)
+- Optimization lead to shallow depth (`depth=5`)
 
-**H/A Specialist Candidates**: Under evaluation
+**Production Deployment:**
 
-- Random Forest: 77.6% H/A accuracy (current leader)
-- LightGBM: 73.0% H/A accuracy
-- XGBoost: 73.7% H/A accuracy
-- Neural Network: 72.9% H/A accuracy
-- RF Specialist (H/A-only training): Not yet tested
-
-**Portfolio Strategy**: Requires Phase 7 testing
-
-- Hypothesis: Route predictions based on draw probability
-- High draw prob → Use generalist (RF) for H/D/A prediction
-- Low draw prob → Use specialist for H/A prediction
-- Performance gain vs. single model approach: **To be determined empirically**
+The production system uses a **tier-based architecture** with two optimized Random Forest models:
 
 
-### Production Recommendation (Current State)
+| Model | Training Data | Hyperparameters | Performance |
+| :-- | :-- | :-- | :-- |
+| **Tier1** | SP1, EN, IT1, DE1, FR1 only | n=100, depth=5, split=20, leaf=1 | 50.5% acc, 38.3% DR |
+| **Multi-Country (Tier2)** | All tier1+tier2 divisions | n=200, depth=5, split=10, leaf=8 | 42.3% acc, 43.1% DR |
 
-**Confirmed Production Model** for draw prediction:
+Both models use:
 
-```python
-Model: RandomForestClassifier(class_weight='balanced')
-Features: odds_optimized (28 features)
-Performance: 50.57% accuracy, 38.17% draw recall
-```
+- **Features**: odds_optimized (28 features)
+- **Tuning**: RandomizedSearchCV with 100 iterations, custom draw-weighted scorer (50/50 balanced_accuracy + draw_recall)
+- **Key insight**: Shallow trees (depth=5) generalize better for minority class prediction
 
-**Next Phase**: Specialist model evaluation and portfolio testing before final production decision.
+**Why tier-based?**
+
+- Tier1-only training maximizes top-division performance
+- Tier2 benefits from tier1 data (+22% draw recall: 19.5% → 43.1%)
+- Specialist H/A models rejected (no empirical improvement over RF's 77.6% H/A accuracy)
+
+
+- See [model_architecture_decisions.md](model_architecture_decisions.md) for a detaile rationale.
+
 
 ***
 

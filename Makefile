@@ -72,3 +72,10 @@ test_elo: elo plot
 
 pipeline: download promotion elo features train
 test_ranges: elo features train
+
+train_models:
+	@$(foreach MODEL,$(MODELS), \
+		echo -e "\n########################################\n"; \
+		echo -e "\n#### Training model: $(MODEL) ####\n"; \
+		echo -e "\n########################################\n"; \
+		footai train --country SP,IT,EN,DE,FR --season-start 15-25 --elo-transfer --multi-countries --division=tier1 --model $(MODEL) --multi-division --no-draws --features-set $(FEATURES_SET);)

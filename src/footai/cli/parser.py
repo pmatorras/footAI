@@ -1,6 +1,11 @@
 '''Command-line interface setup.'''
 import argparse
-from footai.utils.config import RAW_DIR, PROCESSED_DIR, FEATURES_DIR, FEATURE_SETS
+from footai.utils.config import (
+    RAW_DIR,
+    PROCESSED_DIR,
+    FEATURES_DIR,
+    FEATURE_SETS
+)
 from footai.ml.models import MODEL_METADATA
 from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
 
@@ -28,6 +33,8 @@ def create_parser():
     p_plot = sub.add_parser('plot', help='Plot ELO rankings')
     p_train = sub.add_parser('train', help='Plot ELO rankings')
     p_train.add_argument('--nostats', action='store_true', help='Remove printout of relevant statistics.')
+    p_train.add_argument('--tune', action='store_true', help='Run hyperparameter tuning before training')
+    p_train.add_argument('--tune-iterations', type=int, default=30, help='Number of hyperparameter combinations to try (default: 30)')
 
     for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default='2024')

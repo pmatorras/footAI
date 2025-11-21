@@ -14,12 +14,18 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 from sklearn.preprocessing import LabelEncoder
 from footai.ml.models import get_models
 from footai.utils.config import select_features
-from footai.ml.evaluation import print_cv_strategy, print_classification, print_confusion, print_per_division, print_feature_importance
+from footai.ml.evaluation import (
+    print_cv_strategy,
+    print_classification,
+    print_confusion,
+    print_per_division,
+    print_feature_importance
+)
 
 
 
 
-def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2, 
+def train_model(features_csv, feature_set="baseline", 
                          save_model=None, args=None):
     """
     Train baseline Random Forest model for match outcome prediction.
@@ -79,12 +85,7 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
         if missing_pct == 100:
             print(f"      ^^^^ COMPLETELY EMPTY!")
         # Suppress known sklearn imputation warning
-        # under_2_5_prob has missing values in older seasons due to incomplete odds data
-        # Random Forest handles NaN values natively, so this is safe
-        warnings.filterwarnings('ignore', 
-            message='Skipping features without any observed values.*',
-            category=UserWarning,
-            module='sklearn')
+        warnings.filterwarnings('ignore', message='Skipping features without any observed values.*', category=UserWarning, module='sklearn')
     if 'is_tier1' in df.columns:
         if verbose: print(f"  Adding division features: is_tier1, division_tier")
         feature_cols = feature_cols + ['is_tier1', 'division_tier']
@@ -111,7 +112,25 @@ def train_baseline_model(features_csv, feature_set="baseline", test_size=0.2,
 
     # Create and train model
     models = get_models(args)
-    model = models[args.model] #baseline for first attemps
+    model = models[args.model]
+
+    #tuning
+    if args and getattr(args, 'tune', False):
+        from footai.ml.tune import tune_rf_hyperparameters
+        verbose = getattr(args, 'verbose', False)
+        n_iter = getattr(args, 'tune_iterations', 30)
+        
+        print("\nTuning hyperparameters on training data...")
+        best_params = tune_rf_hyperparameters(X, y_encoded, label_encoder=label_encoder, n_iter=n_iter, verbose=verbose)
+        
+        # Update model with best parameters
+        # Extract clf from pipeline
+        if 'clf' in model.named_steps:
+            for param, value in best_params.items():
+                setattr(model.named_steps['clf'], param, value)
+        
+        print(f"\nRetraining with tuned parameters...")
+
 
     if verbose:
         print(f"\nTraining {model}...")
@@ -278,10 +297,10 @@ def predict_match(model, home_features, away_features, feature_names):
     Predict outcome for a single match.
 
     Args:
-        model: Trained model (from train_baseline_model)
+        model: Trained model (from train_model)
         home_features: dict with home team features
         away_features: dict with away team features
-        feature_names: List of features (from train_baseline_model)
+        feature_names: List of features (from train_model)
 
     Returns:
         dict with prediction and probabilities
