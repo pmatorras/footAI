@@ -12,7 +12,7 @@ Handles result logging, JSON export, and aggregate summaries.
 
 from footai.utils.paths import get_multiseason_path, get_season_paths, get_multicountry_model_path
 from footai.data.loader import load_combined_features
-from footai.ml.training import train_baseline_model
+from footai.ml.training import train_model
 from footai.ml.evaluation import print_results_summary, write_metrics_json
 from footai.utils.logger import log_training_run
 
@@ -28,7 +28,7 @@ def execute(countries, seasons, divisions, args, dirs):
         # Train single model on combined data
         multicountry_path = get_multicountry_model_path(countries, seasons, divisions, args.model, tier=args.tier)
         with log_training_run(countries, divisions, args.features_set, seasons, args.model, multidiv=args.multi_division, multicountry=True, tier=args.tier) as json_path:   
-            results = train_baseline_model(features_csv, feature_set=args.features_set,save_model=multicountry_path,args=args)
+            results = train_model(features_csv, feature_set=args.features_set,save_model=multicountry_path,args=args)
             write_metrics_json(json_path, args.countries, divisions, args.features_set, results, seasons)
 
     else:
@@ -37,7 +37,7 @@ def execute(countries, seasons, divisions, args, dirs):
             if args.multi_division:  
                 combined_features = load_combined_features(country, divisions, seasons, dirs, args)
                 with log_training_run(country, divisions[country], args.features_set, seasons, args.model, multidiv=True) as json_path:   
-                    results = train_baseline_model(combined_features, feature_set=args.features_set, test_size=0.2, save_model=f"models/{country}/{country}_multidiv_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl", args=args)
+                    results = train_model(combined_features, feature_set=args.features_set, save_model=f"models/{country}/{country}_multidiv_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl", args=args)
                     write_metrics_json(json_path, country, divisions[country], args.features_set, results, seasons)
 
             elif args.multi_season:
@@ -45,7 +45,7 @@ def execute(countries, seasons, divisions, args, dirs):
                     features_csv = get_multiseason_path(dirs[country]['feat'], division, seasons[0], seasons[-1], args)
                     with log_training_run(country, division, args.features_set, seasons, args.model) as json_path:
                         # Train baseline model
-                        results = train_baseline_model( features_csv, feature_set=args.features_set, test_size=0.2, save_model=f"models/{country}/{args.model}_{division}_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl",args=args)
+                        results = train_model( features_csv, feature_set=args.features_set, save_model=f"models/{country}/{args.model}_{division}_{seasons[0]}_to{seasons[-1]}_{args.features_set}.pkl",args=args)
                         all_results[country][division] = results['accuracy']
                         print("="*70)
                         write_metrics_json(json_path, country, [division], args.features_set, results, seasons)
@@ -57,7 +57,7 @@ def execute(countries, seasons, divisions, args, dirs):
                         paths = get_season_paths(season, division, dirs[country], args)
                         with log_training_run(country, [division], args.features_set, [season]) as json_path:
                             # Train baseline model
-                            results = train_baseline_model( paths['feat'], feature_set="baseline", test_size=0.2, save_model=f"models/{country}/{season}_{division}_baseline_rf.pkl",args=args)
+                            results = train_model( paths['feat'], feature_set=args.feature_set, save_model=f"models/{country}/{season}_{division}_{args.feature_set}_rf.pkl",args=args)
                             all_results[country][season][division] = results['accuracy']
                             write_metrics_json(json_path, country, division, args.features_set, results, season)
                 print_results_summary(all_results[country], divisions[country])

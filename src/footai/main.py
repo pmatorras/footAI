@@ -1,9 +1,20 @@
 """Main execution logic for footAI commands."""
 from footai.cli.parser import create_parser
-from footai.utils.config import setup_directories, parse_countries, get_default_divisions, get_divisions_for_countries
-
 from footai.utils.paths import parse_start_years
-from footai.cli import download, promotion, elo, features, train, plot
+from footai.utils.config import (
+    setup_directories,
+    parse_countries,
+    get_default_divisions,
+    get_divisions_for_countries
+)
+from footai.cli import (
+    download,
+    promotion,
+    elo,
+    features,
+    train,
+    plot
+)
 
 def main():
     #Parse common parameters

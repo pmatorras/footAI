@@ -229,6 +229,67 @@ Three candidates for H/A specialist role:
 > Check whether the observed H/A accuracy differences (4-5% advantage for RF) justify a portfolio approach, or if a single RF model is sufficient for production.
 
 ***
+## Hyperparameter Tuning
+
+### Methodology
+
+Hyperparameter tuning was performed using `RandomizedSearchCV` with:
+- **Cross-validation**: TimeSeriesSplit (3 folds) to respect temporal ordering
+- **Scoring metric**: Custom draw-weighted scorer combining balanced accuracy and draw recall
+- **Iterations**: 100 parameter combinations tested
+- **Dataset**: Tier1 multi-country (SP, IT, EN, DE, FR), 2015-16 to 2025-26
+
+### Scoring Function
+
+To address poor draw prediction (minority class ~25%), we used a custom scorer:
+
+```python
+score = 0.5 * balanced_accuracy + 0.5 * draw_recall
+```
+
+
+This balances overall performance with explicit draw class optimization.
+
+### Search Space
+```python
+    param_dist = {
+        'n_estimators': [100, 200, 300, 500],
+        'max_depth': [5, 8, 10, 15, 20, None],
+        'min_samples_split': [0.01, 0.02, 0.05, 2, 5, 10, 20],
+        'min_samples_leaf': [0.005, 0.01, 0.02, 1, 2, 4, 8],
+        'max_features': ['sqrt', 'log2', 0.3, 0.5],
+        'class_weight': ['balanced', 'balanced_subsample', None],
+        'bootstrap': [True, False],
+    }
+```
+
+
+### Results
+#### Tier1 multi-country (SP, IT, EN, DE, FR) 
+
+**Best configuration (odds_optimized features):**
+- `n_estimators`: 100
+- `max_depth`: 5
+- `min_samples_split`: 20
+- `min_samples_leaf`: 1
+- `max_features`: 'sqrt'
+- `class_weight`: 'balanced_subsample'
+- `bootstrap`: True
+
+**Performance:**
+- Test Accuracy: 50.8%
+- CV Draw Recall: 36.1%
+- Fold 3 (most recent): 50.8% acc, 38.3% draw recall
+
+### Key Findings
+
+1. **Shallow trees generalize better**: max_depth=5 outperformed deeper trees (15-30), suggesting draws require simple decision boundaries to avoid overfitting the minority class.
+
+2. **Higher min_samples_split helps**: split=20 (vs 2) provides better regularization for draw prediction.
+
+3. **sqrt features optimal**: Limiting feature subsets to sqrt(n_features) prevents overfitting.
+
+4. **Draw-weighted scoring essential**: Standard balanced_accuracy optimized to 51.3% acc but only 22.5% draw recall. Custom scorer achieved 50.8% acc with 36.1% draw recall.
 
 ## Conclusion
 
