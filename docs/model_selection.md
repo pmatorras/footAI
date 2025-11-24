@@ -362,13 +362,10 @@ Both models use:
 - Tier1-only training maximizes top-division performance
 - Tier2 benefits from tier1 data (+22% draw recall: 19.5% → 43.1%)
 - Specialist H/A models rejected (no empirical improvement over RF's 77.6% H/A accuracy)
-
-
-- See [model_architecture_decisions.md](model_architecture_decisions.md) for a detaile rationale.
+- Future phases may investigate conditional routing (mixture‑of‑experts) based on draw probability, building on the two‑model tier1 / tier2 architecture described here.
+- See [model_architecture_decisions.md](model_architecture_decisions.md) for a detaile drationale.
 
 
 ***
 
-**Status**: Phase 6 (Model Selection) COMPLETE
-**Next**: Phase 7 (Specialist Evaluation - Optional)
-**Production Ready**: RF generalist model confirmed, portfolio approach under consideration
+**Production Ready**: RF generalist model confirmed, portfolio approach to be considered

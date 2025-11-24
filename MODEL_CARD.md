@@ -179,6 +179,10 @@ footai train --country SP IT EN DE FR --div tier1 \
 --season-start 15-25 --features-set odds_optimized --elo-transfer
 
 ```
+## Future work
+- Experiment with a mixture‑of‑experts routing scheme conditioned on predicted draw probability (e.g. choose between tier1 vs multicountry or tier2‑only vs multicountry per match).
+- Calibrate predicted probabilities (e.g. for draws) and evaluate whether conditional routing improves expected betting profitability on a held‑out period.
+- See [docs/model_architecture_decicions.md](docs/model_architecture_decisions.md#alternative-considered-probabilistic-routing-mixtureofexperts) for a detailed proposal.
 
 ## Contact
 **Author**: Pablo Matorras ([@pmatorras](https://github.com/pmatorras))  

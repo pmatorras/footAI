@@ -36,7 +36,7 @@ def generate_model_visualizations(json_path, output_dir='figures/model_viz', top
     print("\nGenerating visualizations...")
     
     # Feature importance
-    #plot_feature_importance(str(json_path), top_n=top_n, output_path=str(output_dir / f'{json_path.stem}_feature_importance.png'))
+    plot_feature_importance(str(json_path), top_n=top_n, output_path=str(output_dir / f'{json_path.stem}_feature_importance.png'))
     
     # Confusion matrix
     plot_confusion_matrix(str(json_path),output_path=str(output_dir / f'{json_path.stem}_confusion_matrix.png'))
@@ -103,7 +103,7 @@ def plot_feature_importance(json_path: str, top_n: int = 15, output_path: Option
         margin=dict(l=150, r=80, t=80, b=60),
         hovermode='y unified'
     )
-    print("output path", output_path)
+
     if output_path:
         if output_path.endswith('.html'):
             fig.write_html(output_path)
@@ -114,7 +114,7 @@ def plot_feature_importance(json_path: str, top_n: int = 15, output_path: Option
     return fig
 
 
-def plot_confusion_matrix(json_path: str, output_path: Optional[str] = None ) -> go.Figure:
+def plot_confusion_matrix(json_path: str, output_path: Optional[str] = None, tier:  Optional[str] = 'tier2') -> go.Figure:
     """
     Plot confusion matrix from model training results using Plotly.
     
@@ -132,10 +132,20 @@ def plot_confusion_matrix(json_path: str, output_path: Optional[str] = None ) ->
     """
     with open(json_path, 'r') as f:
         data = json.load(f)
-    
-    # Extract confusion matrix
-    cm = np.array(data['confusion_matrix']['matrix'])
-    labels = data['confusion_matrix']['labels']
+        
+    # Auto-detect which matrix to use (tier2 if available, otherwise overall)
+    if data.get('confusion_matrix_'+tier) is not None:
+        matrix_key = 'confusion_matrix_'+tier
+        title_suffix = ' (Only '+tier+')'
+        filename_suffix = '_'+tier
+     
+    else:
+        matrix_key = 'confusion_matrix'
+        title_suffix = ''
+        filename_suffix = ''
+
+    cm = np.array(data[matrix_key]['matrix'])
+    labels = data[matrix_key]['labels']
     
     # Calculate percentages for annotations
     cm_percent = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
@@ -178,10 +188,10 @@ def plot_confusion_matrix(json_path: str, output_path: Optional[str] = None ) ->
         hoverinfo='text',
         colorbar=dict(title='Count')
     ))
-    
+
     fig.update_layout(
         title=dict(
-            text=f'Confusion Matrix - {_extract_model_name(json_path)}',
+            text=f'Confusion Matrix{title_suffix} - {_extract_model_name(json_path)}',
             font=dict(size=16, family='Arial', color='#333')
         ),
         xaxis=dict(title='Predicted Label', side='bottom'),
@@ -191,13 +201,16 @@ def plot_confusion_matrix(json_path: str, output_path: Optional[str] = None ) ->
         width=600,
         annotations=annotations
     )
-    
     if output_path:
-        if output_path.endswith('.html'):
-            fig.write_html(output_path)
+        # Insert suffix before extension
+        output_path = Path(output_path)
+        new_path = output_path.parent / f'{output_path.stem}{filename_suffix}{output_path.suffix}'
+
+        if new_path.suffix =='.html':
+            fig.write_html(new_path)
         else:
-            fig.write_image(output_path, width=600, height=500)
-        print(f"Saved confusion matrix to {output_path}")
+            fig.write_image(new_path, width=600, height=500)
+        print(f"Saved confusion matrix to {new_path}")
     
     return fig
 

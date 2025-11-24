@@ -4,6 +4,18 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics import confusion_matrix
 
+def get_tier_confusion_matrix(df_test, labels, tier_divisions):
+    tier_mask = df_test['Division'].isin(tier_divisions)
+    if tier_mask.sum() > 0:
+        tier_y_true = df_test.loc[tier_mask, 'FTR']
+        tier_y_pred = df_test.loc[tier_mask, 'Prediction']
+        tier_cm = confusion_matrix(tier_y_true, tier_y_pred, labels=labels)
+        
+        return {
+            'labels': labels,
+            'matrix': tier_cm.tolist()
+        }
+    
 def print_cv_strategy(df, n_splits=3):
     """Print expanding-window CV strategy for documentation."""
     from sklearn.model_selection import TimeSeriesSplit
@@ -169,8 +181,8 @@ def write_metrics_json(json_path, country, divisions, feature_set, results, seas
             'hyperparameters': clf.get_params()
         }
     else:
-        print("am i in the else?=", model, type(model))
         model_info = str(model)  # fallback to string
+
     metrics = {
         'metadata': {
             'country': country,
@@ -202,6 +214,8 @@ def write_metrics_json(json_path, country, divisions, feature_set, results, seas
             }
         },
         'confusion_matrix' : results.get('confusion_matrix', None),
+        'confusion_matrix_tier1' : results.get('confusion_matrix_tier1', None),
+        'confusion_matrix_tier2' : results.get('confusion_matrix_tier2', None),
         'cv_results' : {
             'summary' : {
                 'cv_accuracy_mean' : float(results['cv_accuracy_mean']),
