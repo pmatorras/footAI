@@ -79,12 +79,12 @@ MODEL_METADATA = {
 }
 TUNED_RF_PARAMS = {
     'tier1': {
-        'n_estimators': 100,
+        'n_estimators': 200,
         'max_depth': 5,
-        'min_samples_split': 20,
-        'min_samples_leaf': 1,
-        'max_features': 'sqrt',
-        'class_weight': 'balanced_subsample'
+        'min_samples_split': 5,
+        'min_samples_leaf': 8,
+        'max_features': 'log2',
+        'class_weight': 'balanced'
     },
     'multicountry': {
         'n_estimators': 200,
