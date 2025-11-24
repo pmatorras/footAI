@@ -1,6 +1,10 @@
 """Plotting command handler for footAI."""
-from pathlib import Path
-from footai.utils.paths import get_season_paths
+
+from footai.utils.paths import (
+    get_data_loc,
+    get_season_paths,
+    get_multiseason_path
+)
 from footai.utils.config import COUNTRIES
 from footai.viz.plotter import plot_elo_rankings
 from footai.viz.model_viz import generate_model_visualizations
@@ -18,9 +22,21 @@ def execute(countries, seasons, divisions, args, dirs):
         return 0
     
     #ELO PLOTTER
-    for season in seasons:
-        for division in divisions:
-            paths = get_season_paths(season, division, dirs, args)
-            fig = plot_elo_rankings(paths['proc'], division=division, custom_title=f"for {COUNTRIES[args.country]['divisions'][division]} ({COUNTRIES[args.country]["name"]}, season {season})")
-            fig.write_html(paths['fig'])
-            print(f"{season} / {division} saved to {paths['fig']}")
+    for country in countries:
+        if args.multi_season:
+            suffix = '_transfer' if args.elo_transfer else '_multi'  
+            for division in divisions[country]:
+                print("multiseason", division)
+                path = get_multiseason_path(dirs[country]['proc'], division, seasons[0],seasons[-1], args)
+                print(path, type(path))
+                fig = plot_elo_rankings(path, division=division, custom_title="")#f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]["name"]}, season {season})")
+                fig_dir = get_data_loc(f"{seasons[0]}to{seasons[-1]}", division, country, dirs[country]['fig'], file_type='fig', suffix=suffix, verbose=args.verbose)
+                print("Save figure to ", fig_dir)
+                fig.write_html(fig_dir)
+        else:
+            for season in seasons:
+                for division in divisions:
+                        paths = get_season_paths(country, season, division, dirs, args)
+                        fig = plot_elo_rankings(paths['proc'], division=division, custom_title="")#f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]["name"]}, season {season})")
+                        fig.write_html(paths['fig'])
+                        print(f"{season} / {division} saved to {paths['fig']}")

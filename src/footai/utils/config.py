@@ -58,8 +58,8 @@ COUNTRIES = {
     "FR" : {
         "name" : "France",
         "divisions": {
-        "FR1" : "Ligue 1",
-        "FR2" : "Ligue 2"
+        "F1" : "Ligue 1",
+        "F2" : "Ligue 2"
         }
     }
 }

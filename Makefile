@@ -11,7 +11,7 @@ MULTI_DIVISION := $(if $(MULTI_DIVISION_FLAG),$(MULTI_DIVISION_FLAG),$(MULTI_DIV
 PYTHON_FLAGS = $(if $(filter $(VERBOSE),yes true 1),-v,)
 MULTI_DIV_FLAG = $(if $(filter $(MULTI_DIVISION),yes true 1),--multi-division,)
 COUNTRY ?= SP
-SEASON_START ?= 22,23,24
+SEASON_START ?= 15-25
 FEATURES_SET ?= baseline
 FEATURES_SET := $(if $(FEATURES),$(FEATURES),$(FEATURES_SET))
 
