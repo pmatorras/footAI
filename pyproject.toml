@@ -13,7 +13,8 @@ dependencies = [
     "scikit-learn",
     "xgboost",
     "lightgbm",
-    "kaleido"
+    "kaleido",
+    "bs4"
 ]
 
 [project.optional-dependencies]

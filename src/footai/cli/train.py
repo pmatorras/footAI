@@ -11,7 +11,7 @@ Handles result logging, JSON export, and aggregate summaries.
 
 
 from footai.utils.paths import get_multiseason_path, get_season_paths, get_multicountry_model_path
-from footai.data.loader import load_combined_features
+from footai.data.feature_loader import load_combined_features
 from footai.ml.training import train_model
 from footai.ml.evaluation import print_results_summary, write_metrics_json
 from footai.utils.logger import log_training_run

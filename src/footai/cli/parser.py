@@ -27,6 +27,9 @@ def create_parser():
     sub = parser.add_subparsers(dest='cmd', required=True)
 
     p_down = sub.add_parser('download', help='Download new data')
+    group = p_down.add_mutually_exclusive_group()
+    group.add_argument('--only-data', action='store_true', help='Download match data only')
+    group.add_argument('--only-colors', action='store_true', help='Download/update team colors only')
     p_promo = sub.add_parser('promotion-relegation', help='Identify promoted/relegated teams between seasons')
     p_elo = sub.add_parser('elo', help='Calculate ELO rankings')
     p_feat = sub.add_parser('features', help='Calculate feature analysis varialbes')

@@ -5,6 +5,7 @@ DATA_DIR      = ROOT_DIR / 'data'
 RAW_DIR       = DATA_DIR / 'raw'
 PROCESSED_DIR = DATA_DIR / 'processed'
 FEATURES_DIR  = DATA_DIR / 'features'
+COLOR_DIR     = DATA_DIR / 'colors'
 FIG_DIR       = ROOT_DIR / 'figures'
 
 def setup_directories(args):
@@ -19,6 +20,7 @@ def setup_directories(args):
             'raw'  : raw_dir_base / country,
             'proc' : processed_dir_base / country,
             'feat' : features_dir_base / country,
+            'col'  : COLOR_DIR,
             'fig'  : FIG_DIR
 
         }
