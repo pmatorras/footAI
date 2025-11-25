@@ -10,16 +10,20 @@ FIG_DIR       = ROOT_DIR / 'figures'
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {}
+    verbose   = getattr(args, 'verbose', False) # Default verbose to False if not specified
+    raw_dir_base       = getattr(args, 'raw_dir', RAW_DIR)
+    processed_dir_base = getattr(args, 'processed_dir', PROCESSED_DIR)
+    features_dir_base  = getattr(args, 'features_dir', FEATURES_DIR)
     for country in args.countries:
         dirs[country] = {
-            'raw'  : args.raw_dir / country,
-            'proc' : args.processed_dir / country,
-            'feat' : args.features_dir / country,
+            'raw'  : raw_dir_base / country,
+            'proc' : processed_dir_base / country,
+            'feat' : features_dir_base / country,
             'fig'  : FIG_DIR
 
         }
         for dir in dirs[country].keys():
-            if args.verbose: print("creating", dirs[country][dir])
+            if verbose: print("creating", dirs[country][dir])
             Path(dirs[country][dir]).mkdir(parents=True, exist_ok=True)
     return dirs
 
@@ -36,9 +40,9 @@ COUNTRIES = {
         "divisions": {
             "E0" : "Premier League",
             "E1" : "Championship",
-            "E2" : "EFL League 1",
-            "E3" : "EFL League 2",
-            "EC" : "National League"
+            #"E2" : "EFL League 1",
+            #"E3" : "EFL League 2",
+            #"EC" : "National League"
             },
         },
     "IT" : {

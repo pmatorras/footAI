@@ -26,7 +26,7 @@ def execute(countries, seasons, divisions, args, dirs):
         if args.multi_season:
             suffix = '_transfer' if args.elo_transfer else '_multi'  
             for division in divisions[country]:
-                print("multiseason", division)
+                print("multiseason", dirs[country]['proc'], division, seasons[0],seasons[-1])
                 path = get_multiseason_path(dirs[country]['proc'], division, seasons[0],seasons[-1], args)
                 print(path, type(path))
                 fig = plot_elo_rankings(path, division=division, custom_title="")#f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]["name"]}, season {season})")

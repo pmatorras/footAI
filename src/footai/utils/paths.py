@@ -44,8 +44,10 @@ def get_promotion_relegation_file(dirs, country, season):
 
 
 def get_multiseason_path(multiseason_dir, division, season_start, season_end, args=None):
+    print("i enter here at least?")
     suffix = '_transfer' if args.elo_transfer else '_multi'
     multiseason_dir.mkdir(parents=True, exist_ok=True)
+    print(suffix, multiseason_dir, division)
     return multiseason_dir / f'{division}_{season_start}_to_{season_end}{suffix}.csv'
 
 def get_data_loc(season, division, country, file_dir = None, file_type='', suffix='', verbose=False):
