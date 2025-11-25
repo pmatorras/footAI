@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 from footai.viz.themes import get_team_colors_dict
 
-def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_title=None):
+def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, selected_seasons = None, custom_title=None):
     """
     Plot Elo rankings as line chart.
     
@@ -33,6 +33,11 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, custom_titl
     if division:
         df = df[df['Div'] == division]
         if df.empty: raise ValueError(f"No data found for division: {division}")
+    if selected_seasons:
+        df['Season'] = df['Season'].astype(str)  # Add this line!
+        df = df[df['Season'].isin(selected_seasons)]
+        if df.empty:
+            raise ValueError(f"No data for selected seasons: {selected_seasons}")
     else:
         df = df
     

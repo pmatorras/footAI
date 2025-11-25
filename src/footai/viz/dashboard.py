@@ -6,8 +6,9 @@ from footai.utils.paths import get_data_loc, parse_start_years, get_multiseason_
 
 app = Dash(__name__)
 
-SEASON = [1516]
-COUNTRY = ["SP"]
+SEASONS = '15-25'
+season_list = parse_start_years(SEASONS)
+
 app.layout = html.Div([
 
     dcc.Dropdown(
@@ -28,6 +29,16 @@ app.layout = html.Div([
         ],
         value='SP1'
     ),
+    dcc.RangeSlider(
+        id='season-slider',
+        min=0,
+        max=len(season_list)-1,
+        step=1,
+        marks={i: f"{season[:2]}-{season[2:]}" for i, season in enumerate(season_list)},
+        value=[0, len(season_list)-1],  # Default: all seasons
+        tooltip={"placement": "bottom", "always_visible": False}
+    ),
+
     dcc.Graph(id='elo-graph')
 ])
 
@@ -49,29 +60,27 @@ def set_division_options(selected_country):
 
 @app.callback(
     Output('elo-graph', 'figure'),
-    [Input('country-dropdown', 'value'),   # Listens to country changes
-     Input('division-dropdown', 'value')]  # Listens to division changes)
+    [Input('country-dropdown', 'value'),
+     Input('division-dropdown', 'value'),
+     Input('season-slider', 'value')]
+
 )
-def update_graph(country=COUNTRY, division='SP1'):
+def update_graph(country='SP', division='SP1', season_range = 25):
 
     args = types.SimpleNamespace(
         countries = [country],
-        season_start = '15-25',
         elo_transfer = True
-)
-    seasons = parse_start_years(args.season_start)
+    )
     dirs = setup_directories(args)
-    print(seasons)
-    if len(seasons)==1:
-        season_str = seasons[0]
+
+    if len(season_list)==1:
+        season_str = season_list[0]
         elo_path = get_data_loc(season_str, division=division, country=country, file_dir=dirs[country]['proc'], file_type='elo')
         div_plot = str(division)
         return plot_elo_rankings(csv_path=elo_path, division=div_plot, custom_title=f"({COUNTRIES[country]['divisions'][division]})")
     else:
-        print("wip", country, seasons[0],seasons[-1], division, dirs)
-        print("multiseason", dirs[country]['proc'], division)
-        path = get_multiseason_path(dirs[country]['proc'], division, seasons[0],seasons[-1], args)
-        print(path)
-        return plot_elo_rankings(path, division=division, custom_title=f"({COUNTRIES[country]['divisions'][division]})")
+        selected_seasons = season_list[season_range[0]:season_range[1]+1]
+        path = get_multiseason_path(dirs[country]['proc'], division, season_list[0],season_list[-1], args)
+        return plot_elo_rankings(path, division=division, selected_seasons=selected_seasons, custom_title=f"({COUNTRIES[country]['divisions'][division]})")
 if __name__ == '__main__':
     app.run(debug=True, port=8050)
