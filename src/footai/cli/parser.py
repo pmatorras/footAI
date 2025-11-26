@@ -7,7 +7,7 @@ from footai.utils.config import (
     FEATURE_SETS
 )
 from footai.ml.models import MODEL_METADATA
-from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
+from footai.utils.validators import ValidateDivisionAction, validate_decay_factors
 
 def create_parser():
     '''Create and configure the argument parser.'''
@@ -27,15 +27,22 @@ def create_parser():
     sub = parser.add_subparsers(dest='cmd', required=True)
 
     p_down = sub.add_parser('download', help='Download new data')
+    group = p_down.add_mutually_exclusive_group()
+    group.add_argument('--only-data', action='store_true', help='Download match data only')
+    group.add_argument('--only-colors', action='store_true', help='Download/update team colors only')
     p_promo = sub.add_parser('promotion-relegation', help='Identify promoted/relegated teams between seasons')
     p_elo = sub.add_parser('elo', help='Calculate ELO rankings')
     p_feat = sub.add_parser('features', help='Calculate feature analysis varialbes')
     p_plot = sub.add_parser('plot', help='Plot ELO rankings')
+    p_plot.add_argument('--results-json', help='Model results JSON for performance plots')
+    p_plot.add_argument('--output-dir', default='figures/model_viz', help='Output directory')
+    p_plot.add_argument('--top-n', type=int, default=15, help='Number of top features')
     p_train = sub.add_parser('train', help='Plot ELO rankings')
     p_train.add_argument('--nostats', action='store_true', help='Remove printout of relevant statistics.')
     p_train.add_argument('--tune', action='store_true', help='Run hyperparameter tuning before training')
     p_train.add_argument('--tune-iterations', type=int, default=30, help='Number of hyperparameter combinations to try (default: 30)')
-
+    p_train.add_argument('--no-viz', action='store_true', help='Skip automatic visualization generation')
+    
     for sp in (p_down, p_elo, p_feat, p_plot, p_promo,p_train):
         sp.add_argument( '--season-start', type=str, help='Season year (e.g., 2024 for 2024-25 season)', default='2024')
         sp.add_argument( '--division', '-div', action=ValidateDivisionAction, default=None, help='League division (default: First two tiers for given country)')
@@ -47,7 +54,7 @@ def create_parser():
         sp.add_argument( '--model', type=str, default='rf', help='Model to run', choices=MODEL_METADATA.keys())       
         sp.add_argument('-ms', '--multi-season', action='store_true', help='Calculate over multiple seasons')
         sp.add_argument('-v', '--verbose', action='store_true', help='Verbose additional info')
-        sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
+        sp.add_argument( '--decay-factors', '-df', type=validate_decay_factors, help='Decay factors for tier1 and tier2', default={'tier1':0.95, 'tier2': 0.90})
         sp.add_argument('--elo-transfer', action='store_true', help='Transfer ELO ratings from relegated to promoted teams')
         sp.add_argument('-md', '--multi-division', action='store_true', help='Train on multiple divisions (e.g., SP1+SP2).')
         sp.add_argument('-mc', '--multi-countries', action='store_true', help='Train on multiple countries (Eg SP+EN).')

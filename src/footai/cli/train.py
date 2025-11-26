@@ -11,10 +11,11 @@ Handles result logging, JSON export, and aggregate summaries.
 
 
 from footai.utils.paths import get_multiseason_path, get_season_paths, get_multicountry_model_path
-from footai.data.loader import load_combined_features
+from footai.data.feature_loader import load_combined_features
 from footai.ml.training import train_model
 from footai.ml.evaluation import print_results_summary, write_metrics_json
 from footai.utils.logger import log_training_run
+from footai.viz.model_viz import generate_model_visualizations
 
 def execute(countries, seasons, divisions, args, dirs):    
     args.stats = False if args.nostats else True
@@ -61,3 +62,5 @@ def execute(countries, seasons, divisions, args, dirs):
                             all_results[country][season][division] = results['accuracy']
                             write_metrics_json(json_path, country, division, args.features_set, results, season)
                 print_results_summary(all_results[country], divisions[country])
+    if not args.no_viz:
+        generate_model_visualizations(json_path, output_dir=dirs.get('figures', 'figures') + '/model_viz', top_n=15)

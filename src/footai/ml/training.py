@@ -13,8 +13,9 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, recall_score
 from sklearn.preprocessing import LabelEncoder
 from footai.ml.models import get_models
-from footai.utils.config import select_features
+from footai.utils.config import select_features, COUNTRIES
 from footai.ml.evaluation import (
+    get_tier_confusion_matrix,
     print_cv_strategy,
     print_classification,
     print_confusion,
@@ -140,7 +141,7 @@ def train_model(features_csv, feature_set="baseline",
     tscv = TimeSeriesSplit(n_splits=3)
     cv_acc = []; cv_draw_recall = []
     label_map = {'H': 0, 'D': 1, 'A': 2}  
-
+    labels = list(label_map.keys())
     use_div_weights = ('Division' in df.columns) and (df['Division'].nunique() > 1)
     final_x_test = None
     final_y_test = None    
@@ -193,7 +194,7 @@ def train_model(features_csv, feature_set="baseline",
     y_test_str = label_encoder.inverse_transform(y_test)
     y_pred_str = label_encoder.inverse_transform(y_pred)
     accuracy = cv_acc[-1]
-    cm = confusion_matrix(y_test_str, y_pred_str, labels=['H', 'D', 'A'])
+    cm = confusion_matrix(y_test_str, y_pred_str, labels=labels)
     # Calculate per-class metrics from confusion matrix
     # cm[i,j] = true label i, predicted label j
     home_precision = cm[0,0] / cm[:,0].sum() if cm[:,0].sum() > 0 else 0
@@ -212,13 +213,25 @@ def train_model(features_csv, feature_set="baseline",
         print_classification(class_report=report)
         print_confusion(feature_set=feature_set, cm=cm)
 
-    # Around line 186-190 in training.py, after print_per_division()
+    confusion_matrix_tier1 = None
+    confusion_matrix_tier2 = None
+    tier1_divisions = []
+    tier2_divisions = []
+    for country in list(COUNTRIES.keys()):
+        divs = list(COUNTRIES[country]['divisions'].keys())
+        if len(divs) >= 2:
+            tier1_divisions.append(divs[0])
+            tier2_divisions.append(divs[1])
+
     if 'Division' in df.columns:
         df_test = df.iloc[-len(y_test_str):].copy()
         df_test['Prediction'] = y_pred_str
         if stats: print_per_division(df_test, pred_col='Prediction')
-        
-        # NEW: Capture per-division metrics for JSON
+
+        confusion_matrix_tier1 = get_tier_confusion_matrix(df_test, labels, tier1_divisions)
+        confusion_matrix_tier2 = get_tier_confusion_matrix(df_test, labels, tier2_divisions)
+
+        # Capture per-division metrics for JSON
         per_division_results = {}
         for division in sorted(df_test['Division'].unique()):
             div_data = df_test[df_test['Division'] == division]
@@ -235,7 +248,7 @@ def train_model(features_csv, feature_set="baseline",
             
             n_matches = len(div_data)
             
-            # Get confusion matrix
+            # Get confusion matrix per division
             div_cm = confusion_matrix(div_data['FTR'], div_data['Prediction'], labels=['H','D','A'])
             
             per_division_results[division] = {
@@ -243,7 +256,7 @@ def train_model(features_csv, feature_set="baseline",
                 'draw_recall': float(div_draw_recall),
                 'n_matches': int(n_matches),
                 'confusion_matrix': {
-                    'labels': ['H', 'D', 'A'],
+                    'labels': labels,
                     'matrix': div_cm.tolist()
                 }
             }
@@ -261,9 +274,12 @@ def train_model(features_csv, feature_set="baseline",
         'accuracy': accuracy,
         'feature_importance': feature_importance,
         'confusion_matrix': {
-            'labels': ['H', 'D', 'A'],
+            'labels': labels,
             'matrix': cm.tolist()
         },
+        'confusion_matrix_tier1': confusion_matrix_tier1,
+        'confusion_matrix_tier2': confusion_matrix_tier2,
+
         # CV stats
         'cv_accuracy_mean': np.mean(cv_acc),
         'cv_accuracy_std': np.std(cv_acc),

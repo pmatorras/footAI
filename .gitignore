@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 
 # Data & outputs (large files)
-data/
+/data/
 results/
 figures/
 models/

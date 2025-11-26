@@ -12,7 +12,9 @@ dependencies = [
     "dash",
     "scikit-learn",
     "xgboost",
-    "lightgbm"
+    "lightgbm",
+    "kaleido",
+    "bs4"
 ]
 
 [project.optional-dependencies]

@@ -67,25 +67,54 @@ class ValidateDivisionAction(argparse.Action):
 
 
 
-def validate_decay_factor(value):
+def validate_decay_factors(value):
     """
-    Validate that decay factor is between 0 and 1 (inclusive).
+    Validate that decay factor(s) are between 0 and 1 (inclusive). Accepts single float or comma-separated list.
     
     Args:
         value: String value from command line
-        
+
+    Accepts:
+        - Single float: "0.95" -> [0.95, 0.95] (Replicates value for tier 2)
+        - List string: "0.95,0.90" -> [0.95, 0.90]
+        - Space separated: "0.95 0.90" -> [0.95, 0.90]
+
     Returns:
-        float: Validated decay factor
+        list[float]: A list of validated decay factors
         
     Raises:
-        argparse.ArgumentTypeError: If value is not in valid range
+        argparse.ArgumentTypeError: If any of the values is not in valid [0,1] range
     """
+    factors = []
     try:
-        fvalue = float(value)
+        #save if it comes already as list
+        if isinstance(value, list):
+            parts = value
+        else:
+            # Replace comma with space to handle "0.9,0.8" and "0.9 0.8"
+            parts = str(value).replace(',', ' ').split()
+
+        factors = [float(p) for p in parts]
+
+        for fvalue in factors:
+            if fvalue < 0 or fvalue > 1:
+                    raise argparse.ArgumentTypeError(f"Decay factor must be between 0 and 1 (inclusive), got {fvalue}")
+
+        if len(factors) > 2:
+            raise argparse.ArgumentTypeError("Decay factor accepts at most two values (for tier1 and tier2)")
+        #Normalise to dictionary
+        if len(factors) == 1:
+            # Single value applies to both tiers
+            return {'tier1': factors[0], 'tier2': factors[0]}
+        
+        if len(factors) == 2:
+            # First is tier1, second is tier2
+            return {'tier1': factors[0], 'tier2': factors[1]}
+        return factors
+
     except ValueError:
         raise argparse.ArgumentTypeError(f"Decay factor must be a number, got '{value}'")
     
-    if fvalue < 0 or fvalue > 1:
-        raise argparse.ArgumentTypeError(f"Decay factor must be between 0 and 1 (inclusive), got {fvalue}")
+    
     
     return fvalue

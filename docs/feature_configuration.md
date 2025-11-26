@@ -17,9 +17,10 @@
 - [Phase 5: Market dynamics](#phase-5-market-dynamics)
 - [Future work](#future-work-feature-engineering-on-gradient-boosting-models)
 - [Version history](#version-history)
-
-
 ---
+
+
+
 
 ## Executive Summary
 
@@ -30,6 +31,10 @@ Two possible **Final Production Models** (Random Forest):
 - `odds_optimized`: 28 features, 50.57% acc, 38.17% DR
 
 **Total improvement**: +3.73-3.82% DR from baseline (34.35% → 38.08-38.17%)
+
+>**Update v1.1 (Elo Logic Refinement)**:
+>The underlying calculation for Elo features (`HomeElo`, `AwayElo`, `abs_elo_diff`, etc.) was refined in v1.1 to include continuous rating transfer for promoted/relegated teams (with 0.95 decay). \
+>**Decision**: The feature sets defined below (`odds_optimized`, `odds_lite`) remain valid and unchanged. The definitions of the features persist, but the values fed into the model have been improved. Feature selection was not re-run as the fundamental predictive power of these categories is unchanged
 
 The strategy was divided in different  phases:
 ```

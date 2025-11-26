@@ -48,10 +48,10 @@ def tune_rf_hyperparameters(X, y, label_encoder, n_iter=30, verbose=True):
     
     # Parameter distributions
     param_dist = {
-        'n_estimators': [100, 200, 300, 500],
+        'n_estimators': [50, 100, 200],
         'max_depth': [5, 8, 10, 15, 20, None],
         'min_samples_split': [0.01, 0.02, 0.05, 2, 5, 10, 20],
-        'min_samples_leaf': [0.005, 0.01, 0.02, 1, 2, 4, 8],
+        'min_samples_leaf': [1, 2, 4, 8],
         'max_features': ['sqrt', 'log2', 0.3, 0.5],
         'class_weight': ['balanced', 'balanced_subsample', None],
         'bootstrap': [True, False],
