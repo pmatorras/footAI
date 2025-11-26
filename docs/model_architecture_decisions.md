@@ -1,4 +1,5 @@
 # Model Architecture Decisions
+**footAI v0.4**
 
 This document captures key lessons, best practices, and pitfalls discovered during the development of the football match prediction models.
 
@@ -72,6 +73,7 @@ The averaged results were found to be:
 | Tier2 specialist | - | - | 43.7% | 19.5% |
 | Multi-country (tier1+tier2) | 51.9% | 24.7% | 42.8% | **39.6%** |
 
+> Results in the updated v1.1 might differ slightly due to the continuous rating transfer for promoted/relegated teams, but the findings are equivalent.
 ### Key Findings
 
 **1. Per-League Specialization Not Worth It**
@@ -124,12 +126,9 @@ def predict(match):
 - **Tier2**: Use multi-country to fix critical draw recall problem (42.8% acc, 39.6% draw recall)
 
 
-### Alternative Considered: probabilistic routing (mixture‑of‑experts)
+### Probabilistic routing (mixture of experts):
 
-Given the asymmetric behavior above, a natural extension is to use a mixture‑of‑experts style routing rule that conditions on the model’s draw probability instead of only on the league tier.
-
-### High level idea:
-Define to experts per tier, and a simple gate:
+Given the asymmetric behavior above, a natural extension would be to use a mixture‑of‑experts style routing rule that conditions on the model’s draw probability instead of only on the league tier. In this way, one could define to experts per tier, and a simple gate:
 - **Tier 1 experts:**
    - Expert A: tier1 specialist (better balanced H/D/A, stronger on draws).
    - Expert B: multicountry model restricted to tier1 (better H/A but weak on draws).
@@ -167,7 +166,7 @@ To justify such routing, several non‑trivial steps are required:
     - For a grid of thresholds $t_1, t_2$, simulate the full routing policy and measure accuracy, per‑class recall, and (if ever relevant) expected betting profit.
     - Only adopt routing if there exists a threshold region where the mixture **strictly dominates** the base architectures on the chosen objective (e.g. draw F1 or risk‑adjusted return).
 - **Maintain explainability and operational simplicity:**
-    - The current v1 system has a single, transparent rule: tier1 leagues → tier1 model; tier2 leagues → multicountry model.
+    - The current v0.4 system has a single, transparent rule: tier1 leagues → tier1 model; tier2 leagues → multicountry model.
     - Introducing probabilistic gating would require additional monitoring, debugging, and documentation to ensure that failure modes remain understandable.
 
-Given these costs and the current scope (educational / research, not live betting), the project deliberately **keeps v1 at the simpler tier‑based routing** and records this mixture‑of‑experts approach as a **clearly scoped future extension** rather than an immediate requirement.
+Given these costs and the current scope (educational / research, not live betting), the project deliberately **keeps v0.4 at the simpler tier‑based routing** and records this mixture‑of‑experts approach as a **clearly scoped future extension** rather than an immediate requirement.

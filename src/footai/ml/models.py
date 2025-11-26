@@ -86,6 +86,14 @@ TUNED_RF_PARAMS = {
         'max_features': 'log2',
         'class_weight': 'balanced'
     },
+    'tier2' : {
+        'n_estimators': 50,
+        'max_depth': 5,
+        'min_samples_split': 0.05,
+        'min_samples_leaf': 1,
+        'max_features': 'log2',
+        'class_weight': 'balanced_subsample'
+    },
     'multicountry': {
         'n_estimators': 200,
         'max_depth': 5,
@@ -119,8 +127,19 @@ def build_sanitize():
     return FunctionTransformer(_sanitize_infinities, validate=False)
 
 def get_models(args):
+    tier = getattr(args, 'tier', None) if args else None
     use_multicountry = getattr(args, 'multi_countries', False) if args else False
-    rf_config = TUNED_RF_PARAMS['multicountry'] if use_multicountry else TUNED_RF_PARAMS['tier1']
+    if tier is not None:
+        if 'tier1' in tier:
+            key = 'tier1'
+        elif 'tier2' in tier:
+            key = 'tier2'
+    else: 
+        key = 'multicountry'
+        if not  use_multicountry:print("WARNING, version not one of the standards, using multidivision configuration")
+
+    rf_config = TUNED_RF_PARAMS[key]
+    if args.verbose: print("Config File", TUNED_RF_PARAMS[key])
 
     #Include defaults if args not defined 
     n_estimators = getattr(args, 'tree_nestimators', None) if args else None #50
