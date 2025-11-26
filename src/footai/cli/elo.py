@@ -5,10 +5,12 @@ from footai.utils.paths import get_season_paths
 from footai.core.elo import calculate_elo_season, calculate_elo_multiseason
 
 def execute(countries, seasons, divisions, args, dirs):
+    print(args.decay_factors)
+
     for country in countries:
         if args.multi_season:
             print("calculating multi season")
-            calculate_elo_multiseason(seasons, divisions[country], country, dirs, decay_factor=args.decay_factor, initial_elo=1500, k_factor=32, args=args)
+            calculate_elo_multiseason(seasons, divisions[country], country, dirs, decay_factors=args.decay_factors, initial_elo=1500, k_factor=32, args=args)
         else:
             for season in seasons:
                 for division in divisions[country]:

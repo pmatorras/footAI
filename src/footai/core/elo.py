@@ -4,6 +4,7 @@ from collections import defaultdict
 from footai.core.team_movements import load_promotion_relegation
 from footai.utils.paths import get_season_paths, get_multiseason_path
 warnings.filterwarnings('ignore', message='Could not infer format')
+
 def expected_score(elo_a, elo_b):
     """
     Expected probability that team A beats team B using official Elo formula.
@@ -17,6 +18,38 @@ def expected_score(elo_a, elo_b):
 def new_elo(old_elo, expected, actual, k_factor=32):
     """Calculate new ELO rating after a match"""
     return old_elo + k_factor * (actual - expected)
+
+def apply_rating_transfer(target_teams_list, source_teams_data, target_division, team_elos_carry, decay, regression_point=1500, verbose=False):
+    """
+    Transfers ratings from source teams to target teams, applying decay.
+    Handles two modes:
+    1. Merit-based Sort (T1<->T2): If target_teams contains (Team, Elo) tuples, both lists are sorted by Elo so the best incoming teams inherit the best available ratings.
+    2. Blind Assignment (T3->T2): If target_teams is just a list of names (strings), we assign ratings from the best source teams to the targets in their provided list order.
+    Args:
+        target_teams: List of team names OR List of (Team, Rating) tuples.
+        source_teams_data: List of (Team, Rating) tuples from the source pool.
+        target_division: The division key (e.g. 'SP1') to assign into.
+        team_elos_carry: The main dictionary to update.
+        decay: Decay factor to apply during transfer.
+    """
+    # Sort Source Data (Best ratings first)
+    source_teams_data.sort(key=lambda x: x[1], reverse=True)
+    
+    # Handle Target Data
+    if target_teams_list and isinstance(target_teams_list[0], tuple):
+        target_teams_list.sort(key=lambda x: x[1], reverse=True)
+        target_names = [t[0] for t in target_teams_list]
+    else:
+        # Just use names as-is if elo can't be retrieved
+        target_names = target_teams_list
+
+    # 3. Transfer Loop
+    for target_team, (source_team, source_elo) in zip(target_names, source_teams_data):
+        decayed_elo = regression_point + (source_elo - regression_point) * decay
+        team_elos_carry[target_division][target_team] = decayed_elo
+        
+        if verbose:
+            print(f" {target_division}: {target_team} inherits {source_elo:.1f} -> {decayed_elo:.1f} from {source_team}")
 
 
 def calculate_elo_season(matches_df, initial_elo=1500, k_factor=32, team_starting_elos=None):
@@ -95,7 +128,7 @@ def calculate_elo_season(matches_df, initial_elo=1500, k_factor=32, team_startin
 
     return output_df
 
-def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.95, initial_elo=1500, k_factor=32, args=None):
+def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factors={'tier1':0.95, 'tier2': 0.95}, initial_elo=1500, k_factor=32, args=None):
     """
     Process Elo ratings across multiple seasons with continuity and decay.
     
@@ -120,28 +153,63 @@ def calculate_elo_multiseason(seasons, divisions, country, dirs, decay_factor=0.
             promo_relego_df = load_promotion_relegation(season, country, dirs)
             if args.verbose: print(promo_relego_df)
             if promo_relego_df is not None:
-                relegated = promo_relego_df[promo_relego_df['status'] == 'relegated']['team'].tolist()
-                promoted = promo_relego_df[promo_relego_df['status'] == 'promoted']['team'].tolist()
-                if relegated and promoted:
-                    # Use last season's ELOs from tier1 and tier2
-                    if tier1_final_elos is None or tier2_final_elos is None:
-                        print("Skipping ELO transfer because previous season data missing")
-                    else:
-                        #define last season elos, pahts, and dfs
-                        last_eason_promoted_elos = [tier2_final_elos.get(team, initial_elo) for team in promoted]
-                        last_eason_relegated_elos = [tier1_final_elos.get(team, initial_elo) for team in relegated]
+                if tier1_final_elos is None or tier2_final_elos is None:
+                    print("Skipping ELO transfer because previous season data missing")
+                else:
+                    relegated_t1 = promo_relego_df[(promo_relego_df['status']=='relegated') & (promo_relego_df['tier']=='tier1')]['team'].tolist()
+                    promoted_t1 = promo_relego_df[(promo_relego_df['status']=='promoted') & (promo_relego_df['tier']=='tier1')]['team'].tolist()
+                    
+                    relegated_t2 = promo_relego_df[(promo_relego_df['status']=='relegated') & (promo_relego_df['tier']=='tier2')]['team'].tolist()
+                    promoted_t2 = promo_relego_df[(promo_relego_df['status']=='promoted') & (promo_relego_df['tier']=='tier2')]['team'].tolist()
+                    relegated_data_t1 = []
+
+                    for team in relegated_t1:
+                        elo = tier1_final_elos.get(team, initial_elo)
+                        relegated_data_t1.append((team, elo))
                         
-                        # Promoted teams to top division get ELOs from relegated teams in lower division
-                        for promoted_team, rel_elo in zip(promoted, last_eason_relegated_elos):
-                            team_elos_carry[divisions[0]][promoted_team] = rel_elo
-                            if args.verbose: print(f"{divisions[0]}({season}): Transferred {rel_elo:.1f} to {promoted_team}")
-                        # Complementary, transfer the old ELO from SP2 to the newly demoted teams
-                        for relegated_team, promo_elo in zip(relegated, last_eason_promoted_elos):
-                            team_elos_carry[divisions[1]][relegated_team] = promo_elo
-                            if args.verbose: print(f"{divisions[1]}({season}): Transferred {promo_elo:.1f} to {relegated_team}")
+                    # T1 Promoted
+                    promoted_data_t1 = []
+                    for team in promoted_t1:
+                        elo = tier2_final_elos.get(team, initial_elo)
+                        promoted_data_t1.append((team, elo))
 
+                    # T2 Relegated
+                    relegated_data_t2 = []
+                    for team in relegated_t2:
+                        elo = tier2_final_elos.get(team, initial_elo)
+                        relegated_data_t2.append((team, elo))
+                    # Transfer Relegated -> Promoted (Entering T1)
+                        apply_rating_transfer(
+                            target_teams_list=promoted_data_t1,
+                            source_teams_data=relegated_data_t1,
+                            target_division=divisions[0],
+                            team_elos_carry=team_elos_carry,
+                            decay=decay_factors['tier1'],
+                            verbose=args.verbose
+                        )
+                        
+                        # Transfer Promoted -> Relegated (Entering T2)
+                        apply_rating_transfer(
+                            target_teams_list=relegated_data_t1,
+                            source_teams_data=promoted_data_t1,
+                            target_division=divisions[1],
+                            team_elos_carry=team_elos_carry,
+                            decay=decay_factors['tier2'],
+                            verbose=args.verbose
+                        )
+                            
+                        apply_rating_transfer(
+                            target_teams_list=promoted_t2,
+                            source_teams_data=relegated_data_t2,
+                            target_division=divisions[1],
+                            team_elos_carry=team_elos_carry,
+                            decay=decay_factors['tier2'],
+                            verbose=args.verbose
+                        )
 
-        for division in divisions:
+        for div_idx, division in enumerate(divisions):
+            tier_key = f'tier{div_idx + 1}'
+            decay_factor = decay_factors.get(tier_key, 0.95)
             paths = get_season_paths(country, season, division, dirs, args)
             
             df = pd.read_csv(paths['raw'])

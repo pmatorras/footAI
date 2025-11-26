@@ -78,6 +78,22 @@ def identify_promotions_relegations_for_season(season, country, prev_season, dir
             'team': team,
             'status': 'promoted'
         })
+    for team in relegated_from_tier2:
+        results.append({
+            'season': f"{prev_season}_{season}",
+            'tier': 'tier2',
+            'team': team,
+            'status': 'relegated'
+        })
+    
+    for team in promoted_to_tier2:
+        results.append({
+            'season': f"{prev_season}_{season}",
+            'tier': 'tier2',
+            'team': team,
+            'status': 'promoted'
+        })
+       
     
     results_df = pd.DataFrame(results)
     

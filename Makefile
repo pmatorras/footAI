@@ -46,7 +46,7 @@ prepare_train: promotion elo features
 prepare_train_multi: promotion elo_multi features_multi
 
 train: 
-	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --elo-transfer --model $(MODEL)  --features-set  $(FEATURES_SET)  $(MULTI_DIV_FLAG) $(PYTHON_FLAGS)
+	footai train --country $(COUNTRY) $(DIV_FLAG) --multi-countries --season-start $(SEASON_START) --elo-transfer --model $(MODEL)  --features-set  $(FEATURES_SET)  $(MULTI_DIV_FLAG) $(PYTHON_FLAGS)
 
 train_multi: 
 	footai train --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) --model $(MODEL) --features-set $(FEATURES_SET) -ms $(PYTHON_FLAGS)
@@ -79,3 +79,8 @@ train_models:
 		echo -e "\n#### Training model: $(MODEL) ####\n"; \
 		echo -e "\n########################################\n"; \
 		footai train --country SP,IT,EN,DE,FR --season-start 15-25 --elo-transfer --multi-countries --division=tier1 --model $(MODEL) --multi-division --no-draws --features-set $(FEATURES_SET);)
+
+train_tune:
+	footai train --country SP,IT,EN,DE,FR --season-start 15-25 --elo-transfer --multi-countries --model rf --multi-division --features-set odds_optimized --tune --tune-iterations=100
+	footai train --country SP,IT,EN,DE,FR --season-start 15-25 --elo-transfer --multi-countries --model rf --multi-division --features-set odds_optimized --division=tier1 --tune --tune-iterations=100
+	footai train --country SP,IT,EN,DE,FR --season-start 15-25 --elo-transfer --multi-countries --model rf --multi-division --features-set odds_optimized --division=tier2 --tune --tune-iterations=100

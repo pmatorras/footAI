@@ -7,7 +7,7 @@ from footai.utils.config import (
     FEATURE_SETS
 )
 from footai.ml.models import MODEL_METADATA
-from footai.utils.validators import ValidateDivisionAction, validate_decay_factor
+from footai.utils.validators import ValidateDivisionAction, validate_decay_factors
 
 def create_parser():
     '''Create and configure the argument parser.'''
@@ -54,7 +54,7 @@ def create_parser():
         sp.add_argument( '--model', type=str, default='rf', help='Model to run', choices=MODEL_METADATA.keys())       
         sp.add_argument('-ms', '--multi-season', action='store_true', help='Calculate over multiple seasons')
         sp.add_argument('-v', '--verbose', action='store_true', help='Verbose additional info')
-        sp.add_argument( '--decay-factor', '-df', type=validate_decay_factor, help='Decay factor', default=0.95)
+        sp.add_argument( '--decay-factors', '-df', type=validate_decay_factors, help='Decay factors for tier1 and tier2', default={'tier1':0.95, 'tier2': 0.90})
         sp.add_argument('--elo-transfer', action='store_true', help='Transfer ELO ratings from relegated to promoted teams')
         sp.add_argument('-md', '--multi-division', action='store_true', help='Train on multiple divisions (e.g., SP1+SP2).')
         sp.add_argument('-mc', '--multi-countries', action='store_true', help='Train on multiple countries (Eg SP+EN).')

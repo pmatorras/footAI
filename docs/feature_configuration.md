@@ -17,9 +17,13 @@
 - [Phase 5: Market dynamics](#phase-5-market-dynamics)
 - [Future work](#future-work-feature-engineering-on-gradient-boosting-models)
 - [Version history](#version-history)
-
-
 ---
+
+> **Update v0.4 (Elo Logic Refinement)**:
+>The underlying calculation for Elo features (`HomeElo`, `AwayElo`, `abs_elo_diff`, etc.) was refined in v0.4 to include continuous rating transfer for promoted/relegated teams (with 0.95 decay).
+
+>**Decision**: The feature sets defined below (`odds_optimized`, `odds_lite`) remain valid and unchanged. The definitions of the features persist, but the values fed into the model have been improved. Feature selection was not re-run as the fundamental predictive power of these categories is unchanged
+
 
 ## Executive Summary
 
