@@ -51,15 +51,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Create issue on failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'WARNING! Data Update Failed on ${{ github.ref_name }}',
-              body: `The automated data update workflow failed on branch \`${{ github.ref_name }}\`.\n\n[View failed run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\nCheck the logs and retry manually if needed.`,
-              labels: ['automation', 'bug']
-            })
