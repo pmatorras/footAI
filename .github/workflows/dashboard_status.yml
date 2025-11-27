@@ -1,6 +1,8 @@
 name: Dashboard Status Check
 
 on:
+  push:
+    branches: [dev]
   schedule:
     - cron: '*/15 * * * *'  # Check every 15 minutes
   workflow_dispatch:  # Allow manual trigger
@@ -9,6 +11,7 @@ jobs:
   check-status:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Check dashboard status
         id: status
         run: |
