@@ -1,25 +1,45 @@
 # Python bytecode and caches
 __pycache__/
 *.py[cod]
-
-# Data & outputs (large files)
-/data/
-results/
-figures/
-models/
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# Python
-__pycache__/
 *.pyc
 *.pyo
 *.egg-info/
 dist/
 build/
 
-# Environment variables
+# Data (selective whitelist)
+
+#Block all data by default
+/data/*
+
+# Colors data
+!/data/colors/
+/data/colors/*
+!/data/colors/*colors.json
+
+# Processed transfer files only for render production
+!/data/processed/
+/data/processed/*
+!/data/processed/SP/
+!/data/processed/IT/
+!/data/processed/EN/
+!/data/processed/DE/
+!/data/processed/FR/
+/data/processed/*/*
+!/data/processed/*/*_1516_to_2526_transfer.csv
+
+
+#Outputs
+results/
+figures/
+models/
+
+# Environment variables & IDE
 .env
+.venv
 .env.local
+
+.vscode/
+.idea/
+*.swp
+
