@@ -1,0 +1,207 @@
+{
+  "_metadata": {
+    "source": "https://teamcolours.netlify.app/",
+    "attribution": "Team colors curated by FC Python",
+    "note": "Primary team colors in hex format"
+  },
+  "colors": {
+    "Augsburg": [
+      "#BB3532",
+      "#006633",
+      "#FFFFFF"
+    ],
+    "Bayern Munich": [
+      "#DB072D",
+      "#FFFFFF"
+    ],
+    "Bielefeld": [
+      "#000000",
+      "#FFFFFF",
+      "#0000FF"
+    ],
+    "Bochum": [
+      "#2B579E",
+      "#FFFFFF"
+    ],
+    "Braunschweig": [
+      "#025FAC",
+      "#FDF105"
+    ],
+    "Darmstadt": [
+      "#6796C6",
+      "#FFFFFF"
+    ],
+    "Dortmund": [
+      "#FDF105",
+      "#000000"
+    ],
+    "Dresden": [
+      "#FFFF00",
+      "#000000"
+    ],
+    "Duisburg": [
+      "#3C4E99",
+      "#FFFFFF"
+    ],
+    "Ein Frankfurt": [
+      "#FF0000",
+      "#000000",
+      "#FFFFFF"
+    ],
+    "Elversberg": "#CCCCCC",
+    "Erzgebirge Aue": [
+      "#9900CC",
+      "#FFFFFF"
+    ],
+    "FC Koln": [
+      "#ED1C23",
+      "#FFFFFF"
+    ],
+    "Fortuna Dusseldorf": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Frankfurt FSV": [
+      "#000000",
+      "#0072B6"
+    ],
+    "Freiburg": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Greuther Furth": [
+      "#FFFFFF",
+      "#009933"
+    ],
+    "Hamburg": [
+      "#014495",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Hannover": [
+      "#009932",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Hansa Rostock": [
+      "#0033CC",
+      "#FFFFFF",
+      "#FF0000"
+    ],
+    "Heidenheim": [
+      "#003B79",
+      "#E2001A",
+      "#FFFFFF"
+    ],
+    "Hertha": [
+      "#004CFF",
+      "#FFFFFF"
+    ],
+    "Hoffenheim": [
+      "#0033CC",
+      "#FFFFFF"
+    ],
+    "Holstein Kiel": [
+      "#0F5787",
+      "#FFFFFF",
+      "#CC3043"
+    ],
+    "Ingolstadt": [
+      "#000000",
+      "#FF0000"
+    ],
+    "Kaiserslautern": [
+      "#F50505",
+      "#FFFCFC"
+    ],
+    "Karlsruhe": [
+      "#0033CC",
+      "#FFFFFF"
+    ],
+    "Leverkusen": [
+      "#FF0000",
+      "#000000"
+    ],
+    "M'gladbach": [
+      "#000000",
+      "#FFFFFF",
+      "#00CC00"
+    ],
+    "Magdeburg": [
+      "#3300FF",
+      "#FFFFFF"
+    ],
+    "Mainz": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Munich 1860": [
+      "#5D9AF5",
+      "#FFFFFF"
+    ],
+    "Nurnberg": [
+      "#990000",
+      "#FFFFFF"
+    ],
+    "Osnabruck": [
+      "#511972",
+      "#FFFFFF"
+    ],
+    "Paderborn": [
+      "#2B429C"
+    ],
+    "Preußen Münster": [
+      "#000000",
+      "#FFFFFF",
+      "#006600"
+    ],
+    "RB Leipzig": "#CCCCCC",
+    "Regensburg": [
+      "#FFFFFF",
+      "#FF0000"
+    ],
+    "Sandhausen": [
+      "#000000",
+      "#FFFFFF"
+    ],
+    "Schalke 04": [
+      "#025FAC",
+      "#FFFFFF"
+    ],
+    "St Pauli": [
+      "#8B4513",
+      "#FFFFFF"
+    ],
+    "Stuttgart": [
+      "#0BB1DB",
+      "#FFFCFC"
+    ],
+    "Ulm": [
+      "#1F1D1D",
+      "#FCF9F9"
+    ],
+    "Union Berlin": [
+      "#E40019",
+      "#FFFFFF"
+    ],
+    "Wehen": [
+      "#000000",
+      "#C4161C"
+    ],
+    "Werder Bremen": [
+      "#00924A",
+      "#FFFFFF",
+      "#0C4011"
+    ],
+    "Wolfsburg": [
+      "#0C4011",
+      "#FFFFFF",
+      "#77BBFF"
+    ],
+    "Wurzburger Kickers": [
+      "#FF0000",
+      "#FFFFFF",
+      "#FF0000"
+    ]
+  }
+}

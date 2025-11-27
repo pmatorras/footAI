@@ -1,0 +1,257 @@
+{
+  "_metadata": {
+    "source": "https://teamcolours.netlify.app/",
+    "attribution": "Team colors curated by FC Python",
+    "note": "Primary team colors in hex format"
+  },
+  "colors": {
+    "Alessandria": [
+      "#808080",
+      "#808080"
+    ],
+    "Ascoli": [
+      "#FAFAFA",
+      "#030000"
+    ],
+    "Atalanta": [
+      "#295CB0",
+      "#1E191A",
+      "#157A52"
+    ],
+    "Avellino": [
+      "#0C6912",
+      "#FFFFFF"
+    ],
+    "Bari": [
+      "#F7F7F7",
+      "#F03030"
+    ],
+    "Benevento": [
+      "#F0CA0E",
+      "#DB0000"
+    ],
+    "Bologna": [
+      "#ED0909",
+      "#483DEB"
+    ],
+    "Brescia": [
+      "#007FFF",
+      "#FFFFFF"
+    ],
+    "Cagliari": [
+      "#AB0A0A",
+      "#0F0F6B"
+    ],
+    "Carpi": [
+      "#FFFFFF",
+      "#DE1616"
+    ],
+    "Carrarese": [
+      "#135DBF",
+      "#DED250"
+    ],
+    "Catanzaro": [
+      "#FFE226",
+      "#E80303"
+    ],
+    "Cesena": [
+      "#FFFFFF",
+      "#080808"
+    ],
+    "Chievo": [
+      "#F0F027",
+      "#3910E0"
+    ],
+    "Cittadella": [
+      "#831D1C"
+    ],
+    "Como": [
+      "#007FFF",
+      "#FFFFFF",
+      "#A30808"
+    ],
+    "Cosenza": [
+      "#A60303",
+      "#23158C"
+    ],
+    "Cremonese": [
+      "#808080",
+      "#FF0000"
+    ],
+    "Crotone": [
+      "#D43333",
+      "#1D0D61"
+    ],
+    "Empoli": [
+      "#175EEB",
+      "#FFFFFF"
+    ],
+    "FeralpiSalo": [
+      "#00BA00",
+      "#0000FF"
+    ],
+    "Fiorentina": [
+      "#5C2180",
+      "#5C2180"
+    ],
+    "Foggia": [
+      "#BD0B0B",
+      "#000000"
+    ],
+    "Frosinone": [
+      "#FFDD00",
+      "#004393"
+    ],
+    "Genoa": [
+      "#07078A",
+      "#E60707"
+    ],
+    "Inter": [
+      "#000000",
+      "#0055A0",
+      "#CFB013"
+    ],
+    "Juve Stabia": [
+      "#E8F009",
+      "#00004A"
+    ],
+    "Juventus": [
+      "#FCFCFC",
+      "#0A0909"
+    ],
+    "Latina": "#CCCCCC",
+    "Lazio": [
+      "#DCECF2",
+      "#FFFFFF"
+    ],
+    "Lecce": [
+      "#F7FF08",
+      "#E80000",
+      "#080857"
+    ],
+    "Lecco": [
+      "#0E0EC7",
+      "#5151E8"
+    ],
+    "Livorno": [
+      "#853138"
+    ],
+    "Mantova": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Milan": [
+      "#B50909",
+      "#050505"
+    ],
+    "Modena": [
+      "#FBFF00",
+      "#1616CC"
+    ],
+    "Monza": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Napoli": [
+      "#0080FF"
+    ],
+    "Novara": [
+      "#007FFF"
+    ],
+    "Padova": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Palermo": [
+      "#F0C0C8",
+      "#0A0A0A"
+    ],
+    "Parma": [
+      "#FFFB00",
+      "#0000FF"
+    ],
+    "Perugia": [
+      "#FFFFFF",
+      "#D91515"
+    ],
+    "Pescara": [
+      "#0B06B3",
+      "#FAFAFA",
+      "#59A9E6"
+    ],
+    "Pisa": [
+      "#050404",
+      "#100778"
+    ],
+    "Pordenone": "#CCCCCC",
+    "Pro Vercelli": "#CCCCCC",
+    "Reggiana": [
+      "#821D1C",
+      "#FFFFFF"
+    ],
+    "Reggina": [
+      "#6B1111"
+    ],
+    "Roma": [
+      "#FFB22E",
+      "#9E142B"
+    ],
+    "Salernitana": [
+      "#831D1C"
+    ],
+    "Sampdoria": [
+      "#515EE8",
+      "#F5EBEB",
+      "#E61C1C"
+    ],
+    "Sassuolo": [
+      "#099902",
+      "#000000"
+    ],
+    "Spal": [
+      "#0470C2",
+      "#FFFFFF"
+    ],
+    "Spezia": [
+      "#FFFFFF",
+      "#000000",
+      "#6C93BA"
+    ],
+    "Sudtirol": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Ternana": [
+      "#E01D1D",
+      "#316629"
+    ],
+    "Torino": [
+      "#A62D2D"
+    ],
+    "Trapani": [
+      "#943838"
+    ],
+    "Udinese": [
+      "#000000",
+      "#FFFFFF"
+    ],
+    "Venezia": [
+      "#FF8000",
+      "#000000",
+      "#3EB304"
+    ],
+    "Verona": [
+      "#F2E63A",
+      "#5338DE"
+    ],
+    "Vicenza": [
+      "#FAFAFA",
+      "#F02828"
+    ],
+    "Virtus Entella": "#CCCCCC",
+    "Virtus Lanciano": [
+      "#D41313",
+      "#0A0A0A"
+    ]
+  }
+}

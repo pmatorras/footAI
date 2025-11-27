@@ -1,0 +1,144 @@
+{
+  "_metadata": {
+    "source": "https://teamcolours.netlify.app/",
+    "attribution": "Team colors curated by FC Python",
+    "note": "Primary team colors in hex format"
+  },
+  "colors": {
+    "Ajaccio": "#CCCCCC",
+    "Ajaccio GFCO": "#CCCCCC",
+    "Amiens": "#CCCCCC",
+    "Angers": [
+      "#0000FF",
+      "#FFFFFF",
+      "#FF0000"
+    ],
+    "Annecy": "#CCCCCC",
+    "Auxerre": "#CCCCCC",
+    "Bastia": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Beziers": [
+      "#002FFF",
+      "#E33500"
+    ],
+    "Bordeaux": [
+      "#000979",
+      "#FFFFFF"
+    ],
+    "Boulogne": [
+      "#000000",
+      "#FF0000"
+    ],
+    "Bourg Peronnas": "#CCCCCC",
+    "Brest": [
+      "#0000CC",
+      "#FFFFFF"
+    ],
+    "Caen": "#CCCCCC",
+    "Chambly": "#CCCCCC",
+    "Chateauroux": "#CCCCCC",
+    "Clermont": "#CCCCCC",
+    "Concarneau": "#CCCCCC",
+    "Creteil": [
+      "#0011FF",
+      "#FFFFFF"
+    ],
+    "Dijon": "#CCCCCC",
+    "Dunkerque": [
+      "#006FFF",
+      "#FFFFFF"
+    ],
+    "Evian Thonon Gaillard": "#CCCCCC",
+    "Grenoble": "#CCCCCC",
+    "Guingamp": "#CCCCCC",
+    "Laval": "#CCCCCC",
+    "Le Havre": [
+      "#11A4D9"
+    ],
+    "Le Mans": "#CCCCCC",
+    "Lens": [
+      "#FFDF00",
+      "#F50505"
+    ],
+    "Lille": [
+      "#000000",
+      "#FFFF00"
+    ],
+    "Lorient": [
+      "#E13327",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Lyon": [
+      "#FFFFFF",
+      "#003781",
+      "#DB0013"
+    ],
+    "Marseille": [
+      "#FFFFFF",
+      "#099FFF"
+    ],
+    "Martigues": "#CCCCCC",
+    "Metz": [
+      "#FFFF00",
+      "#FF0000"
+    ],
+    "Monaco": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Montpellier": "#CCCCCC",
+    "Nancy": "#CCCCCC",
+    "Nantes": "#CCCCCC",
+    "Nice": [
+      "#B62DC2"
+    ],
+    "Nimes": "#CCCCCC",
+    "Niort": "#CCCCCC",
+    "Orleans": "#CCCCCC",
+    "Paris FC": [
+      "#00093F",
+      "#FFFFFF",
+      "#FF2000"
+    ],
+    "Paris SG": [
+      "#00093F",
+      "#FFFFFF",
+      "#FF2000"
+    ],
+    "Pau FC": [
+      "#000F96",
+      "#FFFF00"
+    ],
+    "Quevilly Rouen": "#CCCCCC",
+    "Red Star": [
+      "#32D181",
+      "#FF0000"
+    ],
+    "Reims": [
+      "#1100FF",
+      "#FFFFFF"
+    ],
+    "Rennes": [
+      "#E13327",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Rodez": [
+      "#FC3A3A",
+      "#EAF520",
+      "#000000"
+    ],
+    "Sochaux": "#CCCCCC",
+    "St Etienne": "#CCCCCC",
+    "Strasbourg": "#CCCCCC",
+    "Toulouse": [
+      "#8D42D4"
+    ],
+    "Tours": "#CCCCCC",
+    "Troyes": "#CCCCCC",
+    "Valenciennes": "#CCCCCC"
+  }
+}

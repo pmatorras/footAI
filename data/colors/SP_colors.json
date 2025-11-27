@@ -1,0 +1,237 @@
+{
+  "_metadata": {
+    "source": "https://teamcolours.netlify.app/",
+    "attribution": "Team colors curated by FC Python",
+    "note": "Primary team colors in hex format"
+  },
+  "colors": {
+    "Alaves": [
+      "#048FD9",
+      "#FFFFFF"
+    ],
+    "Albacete": [
+      "#FFFFFF",
+      "#FFFFFF"
+    ],
+    "Alcorcon": "#CCCCCC",
+    "Almeria": "#CCCCCC",
+    "Amorebieta": [
+      "#0000FF",
+      "#FF0000"
+    ],
+    "Andorra": [
+      "#1F49BA",
+      "#F2DB08",
+      "#D91414"
+    ],
+    "Ath Bilbao": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Ath Bilbao B": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Ath Madrid": [
+      "#CF321F",
+      "#FFFFFF",
+      "#212B61"
+    ],
+    "Barcelona": [
+      "#004C99",
+      "#A60042",
+      "#FFEE00"
+    ],
+    "Barcelona B": [
+      "#004C99",
+      "#A60042",
+      "#FFEE00"
+    ],
+    "Betis": [
+      "#00954C",
+      "#FFFFFF"
+    ],
+    "Burgos": [
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Cadiz": [
+      "#FFFF00",
+      "#0000FF"
+    ],
+    "Cartagena": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Castellon": "#CCCCCC",
+    "Celta": [
+      "#99CCFF",
+      "#FFFFFF"
+    ],
+    "Ceuta": "#CCCCCC",
+    "Cordoba": [
+      "#009933",
+      "#FFFFFF"
+    ],
+    "Cultural Leonesa": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Eibar": [
+      "#E01212",
+      "#0707E0"
+    ],
+    "Elche": [
+      "#FFFFFF",
+      "#00CC33"
+    ],
+    "Eldense": "#CCCCCC",
+    "Espanol": [
+      "#EF3340",
+      "#FFD100"
+    ],
+    "Extremadura UD": [
+      "#800000",
+      "#000080"
+    ],
+    "Ferrol": [
+      "#00CC00",
+      "#FFFFFF"
+    ],
+    "Fuenlabrada": [
+      "#0033FF"
+    ],
+    "Getafe": [
+      "#0000FF",
+      "#0000FF"
+    ],
+    "Gimnastic": "#CCCCCC",
+    "Girona": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Granada": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Huesca": "#CCCCCC",
+    "Ibiza": "#CCCCCC",
+    "La Coruna": "#CCCCCC",
+    "Las Palmas": [
+      "#FFFF00",
+      "#0000FF"
+    ],
+    "Leganes": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Leonesa": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Levante": [
+      "#0000CC",
+      "#CC0000"
+    ],
+    "Llagostera": "#CCCCCC",
+    "Logrones": [
+      "#FF0000",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Lorca": [
+      "#FF0000",
+      "#000000"
+    ],
+    "Lugo": "#CCCCCC",
+    "Malaga": [
+      "#3399FF",
+      "#FFFFFF"
+    ],
+    "Mallorca": [
+      "#FF0000",
+      "#000000"
+    ],
+    "Mirandes": [
+      "#FFFFFF",
+      "#FF0000"
+    ],
+    "Numancia": [
+      "#FF0000",
+      "#0000FF"
+    ],
+    "Osasuna": "#CCCCCC",
+    "Oviedo": [
+      "#0066FF",
+      "#FFFFFF"
+    ],
+    "Ponferradina": [
+      "#0080FF",
+      "#FFFFFF"
+    ],
+    "Rayo Majadahonda": "#CCCCCC",
+    "Real Madrid": [
+      "#FFFFFF",
+      "#004996"
+    ],
+    "Reus Deportiu": "#CCCCCC",
+    "Sabadell": [
+      "#100DDB",
+      "#FFFFFF"
+    ],
+    "Santander": [
+      "#FFFFFF",
+      "#009900"
+    ],
+    "Sevilla": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Sevilla B": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Sociedad": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Sociedad B": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Sp Gijon": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Tenerife": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "UCAM Murcia": [
+      "#EB0707",
+      "#FFFFFF"
+    ],
+    "Valencia": [
+      "#FFFFFF",
+      "#000000",
+      "#F57710"
+    ],
+    "Valladolid": [
+      "#7F2282",
+      "#FFFFFF"
+    ],
+    "Vallecano": [
+      "#FFFFFF",
+      "#FF0000"
+    ],
+    "Villarreal": [
+      "#FFFF00",
+      "#0073FF"
+    ],
+    "Villarreal B": [
+      "#FFFF00",
+      "#0073FF"
+    ],
+    "Zaragoza": "#CCCCCC"
+  }
+}
