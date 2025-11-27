@@ -1,0 +1,65 @@
+name: Update Football Data
+
+on:
+  schedule:
+    - cron: '0 13 27 11 *'  # Today at 1 PM UTC (2 PM CET) - ONE TIME TEST
+    # After testing, change to: '0 3 * * 1' (every Monday 3 AM UTC)
+  workflow_dispatch:  # Manual trigger
+  push:
+    branches:
+      - dev  # Test on dev pushes too
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Use current branch (dev or master)
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+      
+      - name: Download and process data
+        run: |
+          make download
+          make prepare_elo
+        continue-on-error: false
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet data/processed/ || echo "changed=true" >> $GITHUB_OUTPUT
+      
+      - name: Commit and push if changes detected
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/processed/
+          git commit -m " Auto-update data: $(date +'%Y-%m-%d %H:%M UTC')"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'WARNING! Data Update Failed on ${{ github.ref_name }}',
+              body: `The automated data update workflow failed on branch \`${{ github.ref_name }}\`.\n\n[View failed run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\nCheck the logs and retry manually if needed.`,
+              labels: ['automation', 'bug']
+            })
