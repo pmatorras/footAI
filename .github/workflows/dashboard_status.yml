@@ -1,0 +1,45 @@
+name: Dashboard Status Check
+
+on:
+  push:
+    branches: [dev]
+  schedule:
+        - cron: '0 2 * * *' #2 am daily
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  check-status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check dashboard status
+        id: status
+        run: |
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://footai-j05t.onrender.com)
+          if [ $STATUS_CODE -eq 200 ]; then
+            echo "status=online" >> $GITHUB_OUTPUT
+            echo "color=brightgreen" >> $GITHUB_OUTPUT
+          else
+            echo "status=offline" >> $GITHUB_OUTPUT
+            echo "color=red" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create badge JSON
+        run: |
+          mkdir -p assets/badge
+          cat > assets/badge/dashboard_status.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "dashboard status",
+            "message": "${{ steps.status.outputs.status }}",
+            "color": "${{ steps.status.outputs.color }}"
+          }
+          EOF
+      
+      - name: Commit badge data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/badge/dashboard_status.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update dashboard status badge"
+          git push

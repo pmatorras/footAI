@@ -27,7 +27,7 @@ def execute(countries, seasons, divisions, args, dirs):
             suffix = '_transfer' if args.elo_transfer else '_multi'  
             for division in divisions[country]:
                 path = get_multiseason_path(dirs[country]['proc'], division, seasons[0],seasons[-1], args)
-                fig = plot_elo_rankings(path, division=division, country=country, selected_seasons=seasons, custom_title=f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]["name"]}, seasons {seasons[0]}-{seasons[-1]})")
+                fig = plot_elo_rankings(path, division=division, country=country, selected_seasons=seasons, custom_title=f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]['name']}, seasons {seasons[0]}-{seasons[-1]})")
                 fig_dir = get_data_loc(f"{seasons[0]}to{seasons[-1]}", division, country, dirs[country]['fig'], file_type='fig', suffix=suffix, verbose=args.verbose)
                 print("Save figure to ", fig_dir)
                 fig.write_html(fig_dir)
@@ -35,6 +35,6 @@ def execute(countries, seasons, divisions, args, dirs):
             for season in seasons:
                 for division in divisions:
                         paths = get_season_paths(country, season, division, dirs, args)
-                        fig = plot_elo_rankings(paths['proc'], division=division, country=country, custom_title=f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]["name"]}, season {season})")
+                        fig = plot_elo_rankings(paths['proc'], division=division, country=country, custom_title=f"for {COUNTRIES[country]['divisions'][division]} ({COUNTRIES[country]['name']}, season {season})")
                         fig.write_html(paths['fig'])
                         print(f"{season} / {division} saved to {paths['fig']}")

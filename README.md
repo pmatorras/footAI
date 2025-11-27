@@ -1,15 +1,19 @@
 # footAI
+![Update Football Data](https://github.com/pmatorras/footAI/actions/workflows/update_data.yml/badge.svg) [![Dashboard Status](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pmatorras/footAI/dev/assets/badge/dashboard_status.json)](https://footai-j05t.onrender.com)
 
-> **v0.1 - Elo Engine** | **v0.2 - ML Predictions** (In Development)
+> **v0.3 - Production ML** | **v0.4 - Hyperparameter Tuning** | **Live Dashboard v0.5**
 
-Calculate and visualize **Elo rankings** for football teams across major European leagues. 
-This tool automatically downloads match data, computes dynamic Elo ratings for each team, 
-and generates interactive visualizations of team performance over time. 
-Supports multi-season analysis with configurable decay factors.
+Calculate and visualize **Elo rankings** for football teams across major European leagues. This tool automatically downloads match data from [**football-data.co.uk**](https://football-data.co.uk/) — **weekly updated via GitHub Actions** — computes dynamic Elo ratings using the [standard formula](https://en.wikipedia.org/wiki/Elo_rating_system), and generates interactive visualizations of team performance over time. It also provides ML predictions with **50.57% accuracy** and **38.17% draw recall** (Top 5 leagues, 2015-2025).
+It supports multi-season analysis with configurable decay factors:
+
+**Key features:**
+- Multi-season analysis with configurable decay (default 0.95 for tier 1 leagues and 0.90 for tier 2 leagues)
+- Promotion/relegation Elo transfer  
+- **Interactive plots and dashboard for each season** with multi-country/division selector (SP, IT, EN, DE, FR) and interactive season range slider (2015–2026)
+
+Try it **live** on [pablo.matorras.com/footai](https://pablo.matorras.com/footai.html) 
 
 ## Table of Contents
-
-- [About](#about)
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -21,16 +25,6 @@ Supports multi-season analysis with configurable decay factors.
 - [Roadmap](#roadmap)
 - [License](#license)
 
-## About
-This project fetches football data from the main European leages, from [**football-data.co.uk**](https://football-data.co.uk/), and calculates Elo ratings using the [standard formula](https://en.wikipedia.org/wiki/Elo_rating_system):
-
-- Initial rating: 1500
-- K-factor: 32 (volatility per match)
-- Supports both single matches and season progression
-- Carries Elo across seasons (with a `decay-factor` set to 0.95 by default)
-- Assigns newly promoted teams the Elo ranking from last season's demoted teams.
-
-It also produces plots for each given season and an interactive dashboard. The ML component trains RandomForest models on engineered features (Elo, odds, L5 form, draw-specific signals, league context, odds movement) for outcome prediction (H/D/A), with v0.3 achieving **50.57% accuracy** and **38.17% draw recall** on Top 5 European leagues (2015-2025 data, ~8000 matches).
 
 ## Requirements
 
