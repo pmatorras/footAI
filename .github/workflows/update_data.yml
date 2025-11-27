@@ -6,10 +6,12 @@ on:
   workflow_dispatch:  # Manual trigger
   push:
     branches: [dev, master]
-    paths-ignore:
-      - 'data/**'
-      - 'raw/**' 
-      - 'processed/**'
+    paths:
+      - 'src/footai/data/**'
+      - 'src/footai/core/**' 
+      - 'src/footai/cli/**'
+      - 'Makefile'
+      - '.github/workflows/update_data.yml'
 
 jobs:
   update-data:
