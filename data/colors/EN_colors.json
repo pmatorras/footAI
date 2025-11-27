@@ -1,0 +1,229 @@
+{
+  "_metadata": {
+    "source": "https://teamcolours.netlify.app/",
+    "attribution": "Team colors curated by FC Python",
+    "note": "Primary team colors in hex format"
+  },
+  "colors": {
+    "Arsenal": [
+      "#EF0107",
+      "#FFFFFF",
+      "#9C824A"
+    ],
+    "Aston Villa": [
+      "#670E36",
+      "#95BFE5"
+    ],
+    "Barnsley": "#CCCCCC",
+    "Birmingham": "#CCCCCC",
+    "Blackburn": "#CCCCCC",
+    "Blackpool": [
+      "#FF8C00"
+    ],
+    "Bolton": "#CCCCCC",
+    "Bournemouth": [
+      "#BF0C10",
+      "#0C0D0F",
+      "#BEA578"
+    ],
+    "Brentford": [
+      "#FF0000",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Brighton": [
+      "#0054A6",
+      "#FFFFFF"
+    ],
+    "Bristol City": "#CCCCCC",
+    "Burnley": [
+      "#660808",
+      "#73E8F0",
+      "#000000"
+    ],
+    "Burton": [
+      "#FFFF00",
+      "#000000"
+    ],
+    "Cardiff": [
+      "#0070B5",
+      "#D11524"
+    ],
+    "Charlton": [
+      "#D6011D",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Chelsea": [
+      "#004793",
+      "#FFFFFF"
+    ],
+    "Coventry": [
+      "#42A7FF",
+      "#FFFFFF",
+      "#FFFFFF"
+    ],
+    "Crystal Palace": [
+      "#1B458F",
+      "#C4122E",
+      "#A7A5A6"
+    ],
+    "Derby": [
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Everton": [
+      "#0052CC",
+      "#FFFFFF"
+    ],
+    "Fulham": [
+      "#FFFFFF",
+      "#000000",
+      "#CC0000"
+    ],
+    "Huddersfield": [
+      "#0072CE",
+      "#FFFFFF"
+    ],
+    "Hull": [
+      "#F5A12D",
+      "#000000",
+      "#F5A12D"
+    ],
+    "Ipswich": "#CCCCCC",
+    "Leeds": [
+      "#FAF7F7",
+      "#FFE100",
+      "#005FAA"
+    ],
+    "Leicester": [
+      "#0053A0",
+      "#FDBE11"
+    ],
+    "Liverpool": [
+      "#D10022",
+      "#FFFFFF",
+      "#00A499"
+    ],
+    "Luton": [
+      "#F08008",
+      "#2E1C94",
+      "#FFFFFF"
+    ],
+    "Man City": [
+      "#84BBFF",
+      "#FFFFFF",
+      "#84BBFF"
+    ],
+    "Man United": [
+      "#D9020D",
+      "#FFFFFF",
+      "#000000"
+    ],
+    "Middlesbrough": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Millwall": "#CCCCCC",
+    "Milton Keynes Dons": [
+      "#FFFFFF",
+      "#EEE8AA",
+      "#000000"
+    ],
+    "Newcastle": [
+      "#000000",
+      "#FFFFFF"
+    ],
+    "Norwich": [
+      "#009900",
+      "#FFFF00"
+    ],
+    "Nott'm Forest": [
+      "#C8102E",
+      "#FFFFFF"
+    ],
+    "Oxford": [
+      "#FFFF00",
+      "#0000FF"
+    ],
+    "Peterboro": [
+      "#338AD6",
+      "#FAF7F7"
+    ],
+    "Plymouth": [
+      "#004F3E",
+      "#FFFFFF"
+    ],
+    "Portsmouth": [
+      "#0754ED",
+      "#FFFFFF"
+    ],
+    "Preston": "#CCCCCC",
+    "QPR": [
+      "#0066FF",
+      "#FFFFFF"
+    ],
+    "Reading": [
+      "#0000FF",
+      "#FFFFFF"
+    ],
+    "Rotherham": [
+      "#FF0000",
+      "#FFFFFF"
+    ],
+    "Sheffield United": [
+      "#EC2227",
+      "#010101",
+      "#FFFFFF"
+    ],
+    "Sheffield Weds": "#CCCCCC",
+    "Southampton": [
+      "#FF0033",
+      "#FFFFFF"
+    ],
+    "Stoke": [
+      "#FF0033",
+      "#FFFFFF",
+      "#FF0033"
+    ],
+    "Sunderland": [
+      "#EB172C",
+      "#FFFFFF",
+      "#211E1E"
+    ],
+    "Swansea": [
+      "#000000",
+      "#FFFFFF"
+    ],
+    "Tottenham": [
+      "#FFFFFF",
+      "#001C58",
+      "#FFFFFF"
+    ],
+    "Watford": [
+      "#FFF71C",
+      "#E3002D",
+      "#000000"
+    ],
+    "West Brom": [
+      "#000080",
+      "#FFFFFF"
+    ],
+    "West Ham": [
+      "#660033",
+      "#0099FF"
+    ],
+    "Wigan": "#CCCCCC",
+    "Wolves": [
+      "#F21313",
+      "#0D0D0D",
+      "#FFFFFF"
+    ],
+    "Wrexham": "#CCCCCC",
+    "Wycombe": [
+      "#0099FF",
+      "#003399",
+      "#FFFFFF"
+    ]
+  }
+}

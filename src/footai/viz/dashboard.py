@@ -5,6 +5,7 @@ from footai.utils.config import  setup_directories, COUNTRIES
 from footai.utils.paths import get_data_loc, parse_start_years, get_multiseason_path
 
 app = Dash(__name__)
+server = app.server
 
 SEASONS = '15-25'
 season_list = parse_start_years(SEASONS)

@@ -28,8 +28,13 @@ def add_breaks_for_gaps(df, gap_threshold_days=120):
                 new_rows.append(break_row)
     
     if new_rows:
-        # Combine original data with break rows
-        return pd.concat([df, pd.DataFrame(new_rows)], ignore_index=True).sort_values(['team', 'Date'])
+        new_df = pd.DataFrame(new_rows)
+        # Drop columns that are all-NA in the new DataFrame
+        new_df = new_df.dropna(axis=1, how='all')
+        
+        dfs = [df, new_df]
+        dfs_filtered = [d for d in dfs if not d.empty]
+        return pd.concat(dfs_filtered, ignore_index=True).sort_values(['team', 'Date'])
     
     return df
 
@@ -53,7 +58,7 @@ def plot_elo_rankings(csv_path='laliga_with_elo.csv', division=None, country='SP
     """
     
     title = f"Elo Rankings {custom_title}"
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, low_memory=False)
     teams = df['HomeTeam'].unique()
     team_colors = get_team_colors_dict(teams, country=country)
 
