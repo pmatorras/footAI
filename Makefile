@@ -10,6 +10,9 @@ help:
 	@echo "  features              Generate feature sets"
 	@echo "  plot                  Visualize ELO ratings"
 	@echo ""
+	@echo "Dashboard:"
+	@echo "  dashboard             Run development server (port 8050)"
+	@echo "  dashboard_prod        Run production server with gunicorn (port 8000)"
 	@echo "Training:"
 	@echo "  train                 Train model (all divisions)"
 	@echo "  train_t1              Train model (tier 1 only)"
@@ -44,7 +47,7 @@ VERBOSE ?= no
 MULTI_DIVISION ?= no
 COUNTRY ?= SP,IT,EN,DE,FR
 SEASON_START ?= 15-25
-FEATURES_SET ?= baseline
+FEATURES_SET ?= odds_optimized
 MODEL ?= rf
 TIERS ?= tier1 tier2
 MODELS ?=                      # Space-separated list for train_models (must specify)
@@ -93,6 +96,19 @@ plot:
 
 plot_multi:
 	footai plot --country $(COUNTRY) $(DIV_FLAG) --season-start $(SEASON_START) -ms $(PYTHON_FLAGS)
+
+#==============================================================================
+# DASHBOARD
+#==============================================================================
+
+dashboard:
+	@echo "Starting development dashboard on http://localhost:8050"
+	python src/footai/viz/dashboard.py
+
+dashboard_prod:
+	@echo "Starting production dashboard on http://localhost:8000"
+	gunicorn -b 0.0.0.0:8000 src.footai.viz.dashboard:server
+
 
 #==============================================================================
 # TRAINING TARGETS

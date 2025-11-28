@@ -1,5 +1,5 @@
 # Model Selection Study
-**footAI v0.4**
+> **v1.0 - Production ML** | **Live Dashboard**
 
 Date: 2025-11-26
 Dataset: Top 5 European Leagues (2015-2025, ~8000 matches)  
@@ -7,7 +7,7 @@ Objective: Maximize draw recall while maintaining reasonable accuracy
 
 ---
 
-## Executive Summary (v0.4)
+## Executive Summary (v1.0)
 
 This report details the selection of the production model for footAI v0.4. The focus of this iteration was stabilizing **Tier 2 predictions** through rigorous **Elo rating transfer** (incorporating promotion/relegation fluidly between tiers) and adopting a **Multi-Country training strategy**.
 
