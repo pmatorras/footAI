@@ -83,7 +83,7 @@ make dashboard # Create interactive dashboards
 **Live demo**: [pablo.matorras.com/footai](https://pablo.matorras.com/footai.html)  
 **More commands**: Run `make help` or see [Usage](#usage)
 
-
+---
 
 ## Usage
 footAI provides four main commands to download data, calculate Elo ratings, track team movements, and visualize results.
@@ -195,6 +195,8 @@ All subcommands (`download`, `elo`, `plot`) support these options:
 
 </details>
 
+---
+
 ## Model Architecture
 
 footAI uses a **tier-based Random Forest architecture** to predict match outcomes (Home/Draw/Away). The system deploys two specialized models: a **Tier 1 model** trained exclusively on top divisions (La Liga, Premier League, Serie A, Bundesliga, Ligue 1) achieving 50.5% accuracy and 37.4% draw recall, and a **Multi-Country model** trained on combined Tier 1 + Tier 2 data to improve lower-division predictions (42.28% accuracy, 46.33% draw recall). Both models significantly outperform random baseline (33.3% for 3-class prediction), with the Tier 2 model showing a +22.9% improvement in draw recall over tier-specific training.
@@ -256,7 +258,7 @@ The tool supports the following leagues, organized by country code and division 
 
 **Usage:** Specify the country code with `--country` and division code(s) with `--div`:
 
-
+---
 
 ## Project Structure
 
