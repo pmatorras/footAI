@@ -1,5 +1,5 @@
 # Model Architecture Decisions
-**footAI v0.4**
+> **v1.0 - Production ML** | **Live Dashboard**
 
 This document captures key lessons, best practices, and pitfalls discovered during the development of the football match prediction models.
 

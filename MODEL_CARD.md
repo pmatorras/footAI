@@ -1,8 +1,8 @@
 # MODEL CARD: footAI Match Outcome Predictor
+> **v1.0 - Production ML** | **Live Dashboard**
 
 ## Model Details
 **Model Type**: RandomForestClassifier (scikit-learn)  
-**Version**: v1.0  
 **Training Date**: 2025-11-21  
 **Author**: Pablo Matorras  
 **License**: MIT
@@ -164,20 +164,45 @@
 - Open source - anyone can audit/improve methodology
 
 ## Model Performance Visualization
-[Include confusion matrix heatmap here - can generate from your JSON]
+### Tier 1 Model (Top 5 Leagues)
+**Confusion Matrix**: Strong diagonal performance, correctly identifying 37.4% of draws despite class imbalance.
+![Confusion Matrix Tier 1](assets/img/confusion_matrix_tier1.png)
+
+**Feature Importance**: Heavily relies on market odds (`odds_prob_norm`) and Elo differentials, confirming the model learns fundamental market efficiency.
+![Feature Importance Tier 1](assets/img/feature_importance_tier1.png)
+
+
+### Multi-Country Model (Tier 1 + Tier 2)
+**Confusion Matrix**: Used for lower divisions. Note the higher draw recall in some contexts but lower overall accuracy due to higher variance in Tier 2 leagues.
+![Confusion Matrix Multi-Country](assets/img/confusion_matrix_tier2_multicountry.png)
+
+**Feature Importance**: Consistent with Tier 1, but places slightly higher importance on `abs_odds_prob_diff` (match parity), likely because draw rates vary more significantly across lower divisions.
+![Feature Importance Multi-Country](assets/img/feature_importance_multicountry.png)
+
+### Tier 2 Specialist Model (For Completeness)
+A model trained *only* on second divisions (Segunda, Serie B, etc.). While it achieves comparable draw recall, it often suffers from smaller sample sizes compared to the Multi-Country approach. While not currently in production, this model is maintained for experimental comparison and potential future use in a **Mixture of Experts** architecture, as described in [model_architecture_decisions.md](docs/model_architecture_decisions.md#alternative-considered-probabilistic-routing-mixtureofexperts).
+
+![Confusion Matrix Tier 2](assets/img/confusion_matrix_tier2.png)
+![Feature Importance Tier 2](assets/img/feature_importance_tier2.png)
+
+## Ethical Considerations
+**Responsible Gambling**:
+- This model is for **educational/research purposes only**
+- **No guarantee of profitability** - 50.5% accuracy $\neq$ profitable betting
+- **Variance**: 1000-bet samples can show losses due to randomness
+- **Problem gambling resources**: [BeGambleAware.org](https://www.begambleaware.org/)
 
 ## Reproducibility
 **Code**: [github.com/pmatorras/footAI](https://github.com/pmatorras/footAI)  
 **Data**: football-data.co.uk (public, free)  
 **Trained Models**: Available in `models/` directory  
-**Results JSON**: Complete metrics in `results/tier1_1516_to_2526_odds_optimized_rf__20251121.json`
+**Results JSON**: Complete metrics in `results/` directory
 
 **Reproduce Training**:
-```
-
-footai train --country SP IT EN DE FR --div tier1 \
---season-start 15-25 --features-set odds_optimized --elo-transfer
-
+```bash
+make train                #Tier1+Tier2 optmisied
+make train DIVISION=tier1 #Tier1 optimised
+make train DIVISION=tier2 #Tier2 optimised
 ```
 ## Future work
 - Experiment with a mixture‑of‑experts routing scheme conditioned on predicted draw probability (e.g. choose between tier1 vs multicountry or tier2‑only vs multicountry per match).
