@@ -1,10 +1,27 @@
 import types
-from dash import Dash, dcc, html, Input, Output
+from dash import (
+    Dash,
+    dcc,
+    html,
+    Input,
+    Output
+)
 from footai.viz.plotter import plot_elo_rankings
-from footai.utils.config import  setup_directories, COUNTRIES
-from footai.utils.paths import get_data_loc, parse_start_years, get_multiseason_path
-
-app = Dash(__name__)
+from footai.utils.config import (
+    setup_directories,
+    COUNTRIES,
+    ROOT_DIR
+)
+from footai.utils.paths import (
+    get_data_loc,
+    parse_start_years,
+    get_multiseason_path
+)
+assets_path = ROOT_DIR / 'assets' / 'web'
+app = Dash(
+    __name__,
+    assets_folder= assets_path
+)
 server = app.server
 
 SEASONS = '15-25'
@@ -83,5 +100,6 @@ def update_graph(country='SP', division='SP1', season_range = 25):
         selected_seasons = season_list[season_range[0]:season_range[1]+1]
         path = get_multiseason_path(dirs[country]['proc'], division, season_list[0],season_list[-1], args)
         return plot_elo_rankings(path, division=division, selected_seasons=selected_seasons, custom_title=f"({COUNTRIES[country]['divisions'][division]})")
+
 if __name__ == '__main__':
     app.run(debug=True, port=8050)

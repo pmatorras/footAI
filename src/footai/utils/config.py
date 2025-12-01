@@ -1,6 +1,14 @@
+"""
+Project configuration and directory structure definitions.
+
+This module defines the static root directories (raw, processed, features) and 
+contains the master dictionary of supported countries and divisions. It acts as 
+the single source of truth for the project's file organization and scope.
+"""
+
 from pathlib import Path
 
-ROOT_DIR      = Path(__file__).resolve().parents[3] #to be changed if this goes to /src/
+ROOT_DIR      = Path(__file__).resolve().parents[3]
 DATA_DIR      = ROOT_DIR / 'data'
 RAW_DIR       = DATA_DIR / 'raw'
 PROCESSED_DIR = DATA_DIR / 'processed'
@@ -11,7 +19,7 @@ FIG_DIR       = ROOT_DIR / 'figures'
 def setup_directories(args):
     '''Create dictionary with directories and ensure they exist'''
     dirs = {}
-    verbose   = getattr(args, 'verbose', False) # Default verbose to False if not specified
+    verbose   = getattr(args, 'verbose', False)
     raw_dir_base       = getattr(args, 'raw_dir', RAW_DIR)
     processed_dir_base = getattr(args, 'processed_dir', PROCESSED_DIR)
     features_dir_base  = getattr(args, 'features_dir', FEATURES_DIR)

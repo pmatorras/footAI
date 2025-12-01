@@ -1,4 +1,11 @@
-"""Utility functions for season handling."""
+"""
+Utilities for file path generation and season parsing.
+
+This module provides functions to dynamically construct file paths for data, 
+models, and figures based on runtime arguments. It also handles the logic for 
+parsing, validating, and formatting season codes and ranges.
+"""
+
 from pathlib import Path
 
 def year_to_season_code(season):
