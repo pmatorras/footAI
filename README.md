@@ -1,6 +1,10 @@
 # footAI
-![Update Football Data](https://github.com/pmatorras/footAI/actions/workflows/update_data.yml/badge.svg) [![Dashboard Status](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pmatorras/footAI/dev/assets/badge/dashboard_status.json)](https://footai-j05t.onrender.com)
-
+![Updated Football Data](https://github.com/pmatorras/footAI/actions/workflows/update_data.yml/badge.svg) [![Dashboard Status](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pmatorras/footAI/dev/assets/badge/dashboard_status.json)](https://footai-j05t.onrender.com) \
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-orange.svg)
+![Plotly](https://img.shields.io/badge/Plotly-5.0+-blue.svg)
+![Docker](https://img.shields.io/badge/Docker-enabled-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 > **v1.0 - Production ML** | **Live Dashboard**
 
 Calculate and visualize **Elo rankings** for football teams across major European leagues. This tool automatically downloads match data from [**football-data.co.uk**](https://football-data.co.uk/) — **weekly updated via GitHub Actions** — computes dynamic Elo ratings using the [standard formula](https://en.wikipedia.org/wiki/Elo_rating_system), and generates interactive visualizations of team performance over time. It also provides ML predictions with **50.51% accuracy** and **37.35% draw recall** (Top 5 leagues, 2015-2025).
@@ -10,7 +14,7 @@ Calculate and visualize **Elo rankings** for football teams across major Europea
 - Promotion/relegation Elo transfer  
 - **Interactive plots and dashboard for each season** with multi-country/division selector (SP, IT, EN, DE, FR) and interactive season range slider (2015–2026)
 
-Try it **live** on [pablo.matorras.com/footai](https://pablo.matorras.com/footai.html) 
+Try it **live** on [pablo.matorras.com/footai](https://pablo.matorras.com/projects/footai.html) 
 
 **Production Model (Random Forest)- 3-Class Prediction (Home/Draw/Away):**
 - **Accuracy**: 50.57% (Tier 1), 42.28% (Tier 2)
@@ -33,7 +37,6 @@ Try it **live** on [pablo.matorras.com/footai](https://pablo.matorras.com/footai
 ## Pipeline overview
 footAI follows a structured workflow from raw data acquisition to model deployment:
 
-
 ```mermaid
 flowchart TD
     A1[Team colours <br> teamcolours.netlify.app] ----> D
@@ -47,6 +50,39 @@ flowchart TD
 ```
 
 Each stage processes data through dedicated commands (`download`, `promotion-relegation`, `elo`, `features`, `train`, `plot`, `dashboard`). See [Installation & Quick Start](#installation--quick-start) to run the pipeline, or [Usage](#usage) for individual command details.
+
+## System Architecture 
+
+footAI leverages cloud-native practices for automated data updates and production deployment:
+
+```mermaid
+flowchart LR
+    subgraph External["External Data Sources"]
+        Web[football-data.co.uk]
+        Colors[teamcolours.netlify.app]
+    end
+
+    subgraph CI_CD["CI/CD Automation (GitHub Actions)"]
+        Cron[Weekly Schedule] --> Update[Update Workflow]
+        Update -->|Fetch Data| Web
+        Update -->|Process| ETL[ETL Pipeline]
+        ETL -->|Commit CSVs| Repo[(GitHub Repo)]
+    end
+
+    subgraph Cloud["Cloud Deployment (Render)"]
+        Docker[Docker Container]
+        Repo -->|Trigger Build| Docker
+        Docker -->|Serve| Dash[Dash App]
+    end
+
+    User((User)) -->|HTTP Request| Dash
+```
+**Key Components:**
+- **Automated Data Pipeline**: Weekly automated GitHub Actions to fetch match data
+- **Containerization**: Consistent deployment environment accross development and production achieved via Docker
+- **Cloud Deployment**: Render PaaS handles auto-scaling and zero-downtime deployments
+- **Live Dashboard**: Interactive Dash application served at [pablo.matorras.com/footai](https://pablo.matorras.com/projects/footai.html)
+
 
 ## Installation & Quick Start
 
@@ -80,7 +116,7 @@ make plot      # Generate Plots
 make dashboard # Create interactive dashboards
 ```
 
-**Live demo**: [pablo.matorras.com/footai](https://pablo.matorras.com/footai.html)  
+**Live demo**: [pablo.matorras.com/footai](https://pablo.matorras.com/projects/footai.html)  
 **More commands**: Run `make help` or see [Usage](#usage)
 
 ---
@@ -377,7 +413,7 @@ Files follow the pattern: `{COUNTRY}_{SEASON}_{DIVISION}{SUFFIX}`
 - Training result logging (`.txt` logs + `.json` metrics)
 - Multi-country support (SP, IT, EN, DE, FR) with tier 1 + tier 2 divisions
 - Multi-division training capability (e.g., Serie A + Serie B combined)
-- Interactive dashboard deployed at [pablo.matorras.com/footai](https://pablo.matorras.com/footai.html)
+- Interactive dashboard deployed at [pablo.matorras.com/footai](https://pablo.matorras.com/projects/footai.html)
 
 **Performance Benchmarks (Top 5 European Leagues, 2015-2025):**
 - **Tier 1**: 50.5% accuracy, 37.4% draw recall (vs 33.3% random baseline)
