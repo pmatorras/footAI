@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
   "label": "dashboard status",
-  "message": "offline",
-  "color": "red"
+  "message": "online",
+  "color": "brightgreen"
 }
